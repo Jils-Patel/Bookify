@@ -1,0 +1,6 @@
+<svg width="128" height="192" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="192" fill="#f1f5f9" />
+  <rect x="16" y="16" width="96" height="120" fill="#e2e8f0" />
+  <path d="M16,156 L112,156 M16,168 L80,168" stroke="#94a3b8" stroke-width="6" stroke-linecap="round" />
+  <text x="64" y="84" font-family="Arial" font-size="20" fill="#64748b" text-anchor="middle">No Cover</text>
+</svg> 

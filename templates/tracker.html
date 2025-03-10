@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Book Progress Tracker</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/tracker.css') }}">
+    </head>
+    <body>
+        <div class="container">
+            <nav class="navbar">
+                <a href="/" class="nav-link" title="Book Discovery">
+                    <i class="fas fa-book-open"></i>
+                </a>
+                <a href="/tracker" class="nav-link active" title="Book Tracker">
+                    <i class="fa-solid fa-list-check"></i>
+                </a>
+            </nav>
+            
+            <div class="tracker-container">                
+                <div class="book-stats">
+                    <div class="stat-card">
+                        <h3>Total Books</h3>
+                        <div id="totalBooks" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Currently Reading</h3>
+                        <div id="readingCount" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>To Read</h3>
+                        <div id="toReadCount" class="stat-value">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Finished</h3>
+                        <div id="finishedCount" class="stat-value">0</div>
+                    </div>
+                </div>
+                
+                <div class="filter-section">
+                    <div class="filter-label">Filter by Status:</div>
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">All Books</option>
+                        <option value="to-read">To Read</option>
+                        <option value="reading">Currently Reading</option>
+                        <option value="finished">Finished</option>
+                    </select>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search books...">
+                </div>
+                
+                <div id="booksList" class="books-list">
+                    <!-- Books will be added here via JS -->
+                    <div class="empty-state">
+                        <p>No books added yet. Click the + button to add a book!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Floating Add Button -->
+            <button id="addBookFloatingBtn" class="floating-add-btn" aria-label="Add new book">+</button>
+        </div>
+        
+        <!-- Book Details Modal -->
+        <div id="bookModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeModal()">&times;</span>
+                <div id="modalContent" class="book-modal-content">
+                    <!-- Book details will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Book Modal -->
+        <div id="formModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeFormModal()">&times;</span>
+                <div class="form-modal-content">
+                    <h2 id="formTitle">Add New Book</h2>
+                    
+                    <!-- Add book search section -->
+                    <div class="book-search-section">
+                        <div class="search-bar">
+                            <input type="text" id="bookSearchInput" class="form-input" placeholder="Search for a book title...">
+                            <button id="searchBookBtn" class="primary-button">Search</button>
+                        </div>
+                        <div id="searchResults" class="search-results"></div>
+                    </div>
+                    <div class="divider"><span>or enter details manually</span></div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="bookTitle">Book Title*</label>
+                            <input type="text" id="bookTitle" class="form-input" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="bookAuthor">Author*</label>
+                            <input type="text" id="bookAuthor" class="form-input" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="bookStatus">Status</label>
+                            <select id="bookStatus" class="form-input">
+                                <option value="to-read">To Read</option>
+                                <option value="reading">Currently Reading</option>
+                                <option value="finished">Finished</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="totalPages">Total Pages</label>
+                            <input type="number" id="totalPages" class="form-input" min="1">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="pagesRead">Pages Read</label>
+                            <input type="number" id="pagesRead" class="form-input" min="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="coverUrl">Cover Image URL</label>
+                            <input type="url" id="coverUrl" class="form-input" placeholder="https://...">
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="bookDescription">Description</label>
+                            <textarea id="bookDescription" class="form-input" rows="3"></textarea>
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="bookNotes">Notes</label>
+                            <textarea id="bookNotes" class="form-input" rows="3"></textarea>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="saveBookBtn" class="primary-button">Save Book</button>
+                        <button id="cancelBtn" class="secondary-button" onclick="closeFormModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Delete Confirmation Modal -->
+        <div id="deleteConfirmModal" class="modal">
+            <div class="modal-content delete-confirm-modal">
+                <span class="close-button" onclick="closeDeleteConfirmModal()">&times;</span>
+                <div class="delete-modal-content">
+                    <div class="delete-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h2>Delete Book</h2>
+                    <p>Are you sure you want to delete "<span id="deleteBookTitle"></span>"?</p>
+                    <p class="delete-warning">This action cannot be undone.</p>
+                    <div class="button-group">
+                        <button id="confirmDeleteBtn" class="danger-button">Delete Book</button>
+                        <button class="secondary-button" onclick="closeDeleteConfirmModal()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <script src="{{ url_for('static', filename='js/tracker.js') }}"></script>
+    </body>
+</html> 

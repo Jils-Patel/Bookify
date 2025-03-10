@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="180" viewBox="0 0 120 180">
+  <rect width="120" height="180" fill="#f0f4f8" />
+  <rect x="10" y="10" width="100" height="160" fill="white" stroke="#cbd5e0" stroke-width="2" rx="3" />
+  
+  <!-- Title Line -->
+  <rect x="25" y="40" width="70" height="4" fill="#4299e1" rx="2" />
+  
+  <!-- Document Lines -->
+  <rect x="25" y="50" width="70" height="3" fill="#e2e8f0" />
+  <rect x="25" y="60" width="70" height="3" fill="#e2e8f0" />
+  <rect x="25" y="70" width="70" height="3" fill="#e2e8f0" />
+  <rect x="25" y="80" width="70" height="3" fill="#e2e8f0" />
+  <rect x="25" y="90" width="50" height="3" fill="#e2e8f0" />
+  
+  <!-- Citation Icon -->
+  <circle cx="60" cy="120" r="18" fill="#ebf8ff" />
+  <path d="M52 115 L58 121 L68 111" stroke="#4299e1" stroke-width="3" fill="none" />
+  
+  <!-- Title at the top -->
+  <text x="60" y="25" font-family="Arial, sans-serif" font-size="9" text-anchor="middle" fill="#2d3748" font-weight="bold">Semantic Scholar</text>
+  
+  <!-- Citation Text -->
+  <text x="60" y="145" font-family="Arial, sans-serif" font-size="7" text-anchor="middle" fill="#4a5568">Recent Research</text>
+</svg> 

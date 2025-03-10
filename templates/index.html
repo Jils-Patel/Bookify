@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Book Discovery Assistant</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    </head>
+    <body>
+        <div class="container">
+            <nav class="navbar">
+                <a href="/" class="nav-link active" title="Book Discovery">
+                    <i class="fas fa-book-open"></i>
+                </a>
+                <a href="/tracker" class="nav-link" title="Book Tracker">
+                    <i class="fa-solid fa-list-check"></i>
+                </a>
+            </nav>
+
+            
+            <div class="chat-container">
+                <div class="chat-history">
+                    <!-- Chat messages will appear here -->
+                </div>
+                
+                <div class="chat-input-container">
+                    <div class="input-area">
+                        <textarea id="userInput" placeholder="Ask me anything about books or tell me what kind of books you're interested in..."></textarea>
+                        <button id="findBooksBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal -->
+        <div id="bookModal" class="modal">
+            <div class="modal-content">
+                <span class="close-button" onclick="closeModal()">&times;</span>
+                <div id="modalContent"></div>
+            </div>
+        </div>
+
+        <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    </body>
+</html> 
