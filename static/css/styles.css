@@ -365,29 +365,167 @@ h1 {
 .modal {
     display: none;
     position: fixed;
-    top: 0;
+    z-index: 1000;
     left: 0;
+    top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.75);
-    z-index: 1000;
-    padding: 20px;
-    overflow-y: auto;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
 }
 
 .modal-content {
-    position: relative;
-    background-color: white;
-    margin: 40px auto;
-    padding: 30px;
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
     width: 90%;
     max-width: 800px;
-    border-radius: 16px;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-    overflow-x: hidden; /* Prevent horizontal scrolling */
-    min-height: 450px;
-    max-height: 90vh; /* Limit height on small screens */
-    overflow-y: auto; /* Enable vertical scrolling */
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+    color: #333;
+    padding-right: 20px;
+}
+
+.close-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close-button:hover,
+.close-button:focus {
+    color: #000;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 10px 0;
+}
+
+.book-info {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.book-cover {
+    flex: 0 0 200px;
+    margin-right: 20px;
+}
+
+.book-cover img {
+    width: 100%;
+    max-width: 200px;
+    height: auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.book-details {
+    flex: 1;
+    min-width: 0;
+}
+
+.book-details p {
+    margin: 10px 0;
+    line-height: 1.4;
+}
+
+.book-details .description {
+    margin: 15px 0;
+    line-height: 1.6;
+    color: #333;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.read-online-btn,
+.buy-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.read-online-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.buy-btn {
+    background-color: #2196F3;
+    color: white;
+}
+
+.read-online-btn:hover,
+.buy-btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.read-online-btn i,
+.buy-btn i {
+    margin-right: 8px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .modal-content {
+        margin: 10px;
+        width: calc(100% - 20px);
+        padding: 15px;
+    }
+
+    .book-info {
+        flex-direction: column;
+    }
+
+    .book-cover {
+        margin: 0 auto 20px;
+        text-align: center;
+    }
+
+    .book-details {
+        padding: 0;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .read-online-btn,
+    .buy-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 @media (max-width: 640px) {
@@ -431,27 +569,6 @@ h1 {
     .nav-link i {
         font-size: 1.4em;
     }
-}
-
-.close-button {
-    position: absolute;
-    right: 20px;
-    top: 20px;
-    font-size: 28px;
-    font-weight: 600;
-    cursor: pointer;
-    color: #4a5568;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    z-index: 10; /* Ensure it's above other content */
-}
-
-.close-button:hover {
-    background-color: #f7fafc;
 }
 
 .modal-book-info {

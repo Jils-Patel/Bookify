@@ -3,6 +3,8 @@ import openai
 import requests
 import json
 import re
+import internetarchive
+from urllib.parse import quote
 
 app = Flask(__name__)
 
@@ -667,7 +669,7 @@ def recommend():
         }), 500
 
 @app.route('/search_books', methods=['GET'])
-def search_books():
+def search_books_tracker():
     """Search books by title using Open Library API and return results for the tracker"""
     query = request.args.get('query', '')
     if not query:
@@ -861,6 +863,44 @@ def book_details(olid):
         book_details['description'] += f"\n\n📚 **This book is available to read online through Open Library or Internet Archive.**"
     
     return jsonify(book_details)
+
+@app.route('/quick_search')
+def quick_search():
+    return render_template('quick_search.html', active_page='quick_search')
+
+@app.route('/quick_search/results')
+def quick_search_results():
+    source = request.args.get('source')
+    query = request.args.get('query', '')
+    max_results = int(request.args.get('max_results', '10'))
+
+    if not source or not query:
+        return jsonify([])
+
+    try:
+        if source == 'books':
+            # Build Open Library search query
+            book_results = search_open_library(query, max_results=max_results)
+            _, books_info = get_book_descriptions(query, book_results)
+            return jsonify(books_info)
+
+        elif source == 'recent_research':
+            # Search Semantic Scholar
+            papers = search_semantic_scholar(query, max_results=max_results)
+            research_info = get_semantic_scholar_details(papers)
+            return jsonify(research_info)
+
+        elif source == 'archive':
+            # Search Internet Archive
+            research_results = search_internet_archive(query, max_results=max_results)
+            research_info = get_research_details(research_results)
+            return jsonify(research_info)
+
+        return jsonify([])
+
+    except Exception as e:
+        print(f"Error in quick search: {str(e)}")
+        return jsonify([])
 
 if __name__ == '__main__':
     app.run(debug=True)
