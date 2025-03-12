@@ -175,6 +175,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="action-buttons">
                             ${readOnlineHtml}
                             ${buyButtonHtml}
+                            <button class="add-to-collection-btn" onclick="addToCollection(${JSON.stringify(item).replace(/"/g, '&quot;')}, 'book')">
+                                <i class="fas fa-plus"></i> Add to Collection
+                            </button>
                         </div>
                     </div>
                     <div class="modal-book-details">
@@ -209,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const viewOnlineBtn = item.view_url || item.url
                 ? `<div class="read-online-section">
                     <a href="${item.view_url || item.url}" target="_blank" class="read-online-btn">
-                        <i class="fas fa-external-link-alt"></i> View on Semantic Scholar
+                        <i class="fas fa-external-link-alt"></i> View Paper
                     </a>
                    </div>`
                 : '';
@@ -217,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const downloadBtn = item.download_url
                 ? `<div class="buy-section">
                     <a href="${item.download_url}" target="_blank" class="buy-btn">
-                        <i class="fas fa-file-download"></i> ${item.is_open_access ? 'Download Open Access PDF' : 'Download PDF'}
+                        <i class="fas fa-file-download"></i> ${item.is_open_access ? 'Download PDF' : 'Download PDF'}
                     </a>
                    </div>`
                 : '';
@@ -236,6 +239,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="action-buttons">
                             ${viewOnlineBtn}
                             ${downloadBtn}
+                            <button class="add-to-collection-btn" onclick="addToCollection(${JSON.stringify(item).replace(/"/g, '&quot;')}, 'research')">
+                                <i class="fas fa-plus"></i> Add to Collection
+                            </button>
                         </div>
                     </div>
                     <div class="modal-book-details">
@@ -284,6 +290,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="action-buttons">
                             ${viewOnlineBtn}
                             ${downloadBtn}
+                            <button class="add-to-collection-btn" onclick="addToCollection(${JSON.stringify(item).replace(/"/g, '&quot;')}, 'archive')">
+                                <i class="fas fa-plus"></i> Add to Collection
+                            </button>
                         </div>
                     </div>
                     <div class="modal-book-details">
@@ -346,4 +355,42 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.style.overflow = 'auto';
         }
     });
+
+    // Add the addToCollection function
+    window.addToCollection = function(item, type) {
+        const bookData = {
+            title: item.title,
+            author: item.author || (Array.isArray(item.authors) ? item.authors.join(', ') : item.all_authors),
+            description: item.description || item.abstract || item.recommendation || '',
+            coverUrl: item.cover_url,
+            totalPages: null,
+            pagesRead: 0,
+            status: 'to-read',
+            notes: '',
+            type: type,
+            source_url: item.reading_url || item.view_url || item.url || null,
+            download_url: item.download_url || null,
+            year: item.year || 'Unknown'
+        };
+
+        // Save to localStorage
+        let books = JSON.parse(localStorage.getItem('bookTrackerBooks') || '[]');
+        bookData.id = Date.now().toString(); // Generate unique ID
+        books.push(bookData);
+        localStorage.setItem('bookTrackerBooks', JSON.stringify(books));
+
+        // Show success message
+        const successMsg = document.createElement('div');
+        successMsg.className = 'success-message';
+        successMsg.innerHTML = `
+            <i class="fas fa-check-circle"></i>
+            Added to your collection!
+        `;
+        document.body.appendChild(successMsg);
+
+        // Remove the message after 3 seconds
+        setTimeout(() => {
+            successMsg.remove();
+        }, 3000);
+    };
 }); 

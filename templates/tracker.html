@@ -50,19 +50,16 @@
                         <option value="reading">Currently Reading</option>
                         <option value="finished">Finished</option>
                     </select>
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search books...">
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search your collection...">
                 </div>
                 
                 <div id="booksList" class="books-list">
                     <!-- Books will be added here via JS -->
                     <div class="empty-state">
-                        <p>No books added yet. Click the + button to add a book!</p>
+                        <p>No books in your collection yet. Add books from the Book Discovery or Quick Search pages!</p>
                     </div>
                 </div>
             </div>
-
-            <!-- Floating Add Button -->
-            <button id="addBookFloatingBtn" class="floating-add-btn" aria-label="Add new book">+</button>
         </div>
         
         <!-- Book Details Modal -->
@@ -75,22 +72,11 @@
             </div>
         </div>
 
-        <!-- Add/Edit Book Modal -->
+        <!-- Edit Book Modal -->
         <div id="formModal" class="modal">
             <div class="modal-content">
                 <span class="close-button" onclick="closeFormModal()">&times;</span>
                 <div class="form-modal-content">
-                    <h2 id="formTitle">Add New Book</h2>
-                    
-                    <!-- Add book search section -->
-                    <div class="book-search-section">
-                        <div class="search-bar">
-                            <input type="text" id="bookSearchInput" class="form-input" placeholder="Search for a book title...">
-                            <button id="searchBookBtn" class="primary-button">Search</button>
-                        </div>
-                        <div id="searchResults" class="search-results"></div>
-                    </div>
-                    <div class="divider"><span>or enter details manually</span></div>
                     
                     <div class="form-grid">
                         <div class="form-group">
@@ -139,7 +125,7 @@
                     </div>
                     
                     <div class="button-group">
-                        <button id="saveBookBtn" class="primary-button">Save Book</button>
+                        <button id="saveBookBtn" class="primary-button">Save</button>
                         <button id="cancelBtn" class="secondary-button" onclick="closeFormModal()">Cancel</button>
                     </div>
                 </div>
@@ -164,6 +150,10 @@
                 </div>
             </div>
         </div>
+        
+        <button class="floating-add-btn" onclick="showCustomBookForm()" title="Add Custom Book">
+            <i class="fas fa-plus"></i>
+        </button>
         
         <script src="{{ url_for('static', filename='js/tracker.js') }}"></script>
     </body>

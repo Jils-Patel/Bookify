@@ -188,134 +188,197 @@ function checkImage(url) {
     });
 }
 
-function showModal(book) {
+function showModal(content) {
     const modal = document.getElementById('bookModal');
     const modalContent = document.getElementById('modalContent');
     
-    const subjectsHtml = book.subjects && book.subjects.length > 0 
-        ? `<div class="modal-book-subjects">
-            ${book.subjects.map(subject => `<span class="subject-tag">${subject}</span>`).join('')}
-           </div>`
-        : '';
-    
-    // Create a read online button if available
-    const readOnlineHtml = book.has_ebook && book.reading_url
-        ? `<div class="read-online-section">
-            <a href="${book.reading_url}" target="_blank" class="read-online-btn">
-                <i class="fas fa-book-reader"></i> Read Online
-            </a>
-           </div>`
-        : '';
-    
-    // Create Amazon buy button
-    const buyButtonHtml = book.buy_link
-        ? `<div class="buy-section">
-            <a href="${book.buy_link}" target="_blank" class="buy-btn">
-                <i class="fas fa-shopping-cart"></i> Buy on Amazon
-            </a>
-           </div>`
-        : '';
-    
-    modalContent.innerHTML = `
-        <div class="modal-book-info">
-            <div class="modal-book-cover">
-                <div class="book-cover-wrapper">
-                    <img src="${book.cover_url}" alt="${book.title} cover" 
-                         onerror="this.src='/static/images/book-placeholder.svg'">
-                         <div class="action-buttons">
-                        ${readOnlineHtml}
-                        ${buyButtonHtml}
+    // If content is a string (HTML), use it directly
+    if (typeof content === 'string') {
+        modalContent.innerHTML = content;
+    } else {
+        // Otherwise, treat it as a book/paper object
+        const subjectsHtml = content.subjects && content.subjects.length > 0 
+            ? `<div class="modal-book-subjects">
+                ${content.subjects.map(subject => `<span class="subject-tag">${subject}</span>`).join('')}
+               </div>`
+            : '';
+        
+        // Create a read online button if available
+        const readOnlineHtml = content.has_ebook && content.reading_url
+            ? `<div class="read-online-section">
+                <a href="${content.reading_url}" target="_blank" class="read-online-btn">
+                    <i class="fas fa-book-reader"></i> Read Online
+                </a>
+               </div>`
+            : '';
+        
+        // Create Amazon buy button
+        const buyButtonHtml = content.buy_link
+            ? `<div class="buy-section">
+                <a href="${content.buy_link}" target="_blank" class="buy-btn">
+                    <i class="fas fa-shopping-cart"></i> Buy on Amazon
+                </a>
+               </div>`
+            : '';
+        
+        modalContent.innerHTML = `
+            <div class="modal-body">
+                <div class="modal-book-info">
+                    <div class="modal-book-cover">
+                        <div class="book-cover-wrapper">
+                            <img src="${content.cover_url}" alt="${content.title} cover" 
+                                 onerror="this.src='/static/images/book-placeholder.svg'">
+                            ${content.has_ebook ? '<div class="ebook-badge"><i class="fas fa-book-open"></i> E-book</div>' : ''}
+                        </div>
+                        <div class="action-buttons">
+                            ${readOnlineHtml}
+                            ${buyButtonHtml}
+                            <button class="add-to-collection-btn" onclick='addToCollection(${JSON.stringify(content).replace(/"/g, '&quot;')}, "book")'>
+                                <i class="fas fa-plus"></i> Add to Collection
+                            </button>
+                        </div>
                     </div>
-                    ${book.has_ebook ? '<div class="ebook-badge"><i class="fas fa-book-open"></i> E-book</div>' : ''}
+                    <div class="modal-book-details">
+                        <div class="modal-book-metadata">
+                            <h2>${content.title}</h2>
+                            <p>by ${content.author || content.authors || content.all_authors || 'Unknown'}</p>
+                            <p>Published: ${content.year || 'Unknown'}</p>
+                        </div>
+                        ${subjectsHtml}
+                        ${content.first_sentence ? `<p class="first-sentence">${content.first_sentence}</p>` : ''}
+                        <div class="modal-book-recommendation">
+                            <h3>Summary</h3>
+                            <p>${content.recommendation || content.description || content.abstract || "No description available."}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-book-details">
-                <h2 class="modal-book-title">${book.title}</h2>
-                <div class="modal-book-metadata">
-                    <p>by ${book.author}</p>
-                    <p>Published: ${book.year}</p>
-                </div>
-                ${subjectsHtml}
-                
-                ${book.first_sentence ? `<p class="first-sentence">${book.first_sentence}</p>` : ''}
-                <div class="modal-book-recommendation">
-                    <h3>Summary</h3>
-                    <p>${book.recommendation || ""}</p>
-                </div>
-            </div>
-        </div>
-    `;
+        `;
+    }
     
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
 }
 
 function showResearchModal(paper) {
-    const modal = document.getElementById('bookModal');
-    const modalContent = document.getElementById('modalContent');
-    
-    // Build subjects HTML if available
-    let subjectsHtml = '';
-    if (paper.subjects && paper.subjects.length > 0) {
-        subjectsHtml = `
-        <div class="modal-book-subjects">
-            ${paper.subjects.map(subject => `<span class="subject-tag">${subject}</span>`).join('')}
-        </div>`;
-    }
-    
-    // Build view/download buttons
-    let viewOnlineBtn = '';
-    if (paper.view_url) {
-        viewOnlineBtn = `
-        <div class="read-online-section">
-            <a href="${paper.view_url}" target="_blank" class="read-online-btn">
-                <i class="fas fa-external-link-alt"></i> View Online
-            </a>
-        </div>`;
-    }
-    
-    let downloadBtn = '';
-    if (paper.download_url) {
-        downloadBtn = `
-        <div class="buy-section">
-            <a href="${paper.download_url}" target="_blank" class="buy-btn">
-                <i class="fas fa-file-download"></i> Download PDF
-            </a>
-        </div>`;
-    }
-    
-    // Format description (use recommendation if available)
-    const description = paper.recommendation || paper.description || 'No description available.';
-    
-    // Construct the modal HTML
-    modalContent.innerHTML = `
-        <div class="modal-book-info">
-            <div class="modal-book-cover">
-                <div class="book-cover-wrapper">
-                    <img src="${paper.cover_url || '/static/images/research-placeholder.svg'}" 
-                        alt="${paper.title}" 
-                        onerror="this.src='/static/images/research-placeholder.svg'">
-                    ${paper.has_ebook ? '<div class="ebook-badge"><i class="fas fa-file-pdf"></i> PDF</div>' : ''}
+    const researchModalHtml = `
+        <div class="modal-body">
+            <div class="modal-book-info">
+                <div class="modal-book-cover">
+                    <div class="book-cover-wrapper">
+                        <img src="${paper.cover_url || '/static/images/research-placeholder.svg'}" 
+                             alt="${paper.title} cover"
+                             onerror="this.src='/static/images/research-placeholder.svg'">
+                        <div class="ebook-badge"><i class="fas fa-file-pdf"></i> PDF</div>
+                    </div>
+                    <div class="action-buttons">
+                        ${paper.view_url ? `
+                            <div class="read-online-section">
+                                <a href="${paper.view_url}" target="_blank" class="read-online-btn">
+                                    <i class="fas fa-book-reader"></i>Read Online
+                                </a>
+                            </div>
+                        ` : ''}
+                        ${paper.download_url ? `
+                            <div class="read-online-section">
+                                <a href="${paper.download_url}" target="_blank" class="read-online-btn">
+                                    <i class="fas fa-download"></i>Download PDF
+                                </a>
+                            </div>
+                        ` : ''}
+                        <button class="add-to-collection-btn" onclick='addToCollection(${JSON.stringify(paper).replace(/"/g, '&quot;')})'>
+                            <i class="fas fa-plus"></i>Add to Collection
+                        </button>
+                    </div>
                 </div>
-                <div class="action-buttons">
-                    ${viewOnlineBtn}
-                    ${downloadBtn}
-                </div>
-            </div>
-            <div class="modal-book-details">
-                <h2 class="modal-book-title">${paper.title}</h2>
-                <div class="modal-book-metadata">
-                    <p>By ${paper.author} <span class="year-badge">${paper.year}</span></p>
-                </div>
-                ${subjectsHtml}
-                <div class="modal-book-recommendation">
-                    <p>${description}</p>
+                <div class="modal-book-details">
+                    <div class="modal-book-metadata">
+                        <h2>${paper.title}</h2>
+                        <p><strong>Author(s):</strong> ${paper.author || paper.authors || paper.all_authors || 'Unknown'}</p>
+                        <p><strong>Year:</strong> ${paper.year || 'Unknown'}</p>
+                        ${paper.journal ? `<p><strong>Journal:</strong> ${paper.journal}</p>` : ''}
+                        ${paper.conference ? `<p><strong>Conference:</strong> ${paper.conference}</p>` : ''}
+                    </div>
+                    <div class="book-description">
+                        <h3>Abstract</h3>
+                        <p>${paper.abstract || paper.description || 'No abstract available.'}</p>
+                    </div>
                 </div>
             </div>
         </div>
     `;
     
-    // Show the modal
+    const modal = document.getElementById('bookModal');
+    const modalContent = document.getElementById('modalContent');
+    modalContent.innerHTML = researchModalHtml;
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function showScholarModal(paper) {
+    const scholarModalHtml = `
+        <div class="modal-body">
+            <div class="modal-book-info">
+                <div class="modal-book-cover">
+                    <div class="book-cover-wrapper">
+                        <img src="${paper.cover_url || '/static/images/scholar-placeholder.svg'}" 
+                             alt="${paper.title} cover"
+                             onerror="this.src='/static/images/scholar-placeholder.svg'">
+                        <div class="ebook-badge scholar-badge">
+                            <i class="fas fa-file-alt"></i> ${paper.is_open_access ? 'Open Access' : (paper.has_ebook ? 'PDF' : 'Article')}
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        ${paper.view_url ? `
+                            <div class="read-online-section">
+                                <a href="${paper.view_url}" target="_blank" class="read-online-btn">
+                                    <i class="fas fa-book-reader"></i>View on Semantic Scholar
+                                </a>
+                            </div>
+                        ` : ''}
+                        ${paper.download_url ? `
+                            <div class="read-online-section">
+                                <a href="${paper.download_url}" target="_blank" class="read-online-btn">
+                                    <i class="fas fa-download"></i>Download PDF
+                                </a>
+                            </div>
+                        ` : ''}
+                        <button class="add-to-collection-btn" onclick='addToCollection(${JSON.stringify(paper).replace(/"/g, '&quot;')})'>
+                            <i class="fas fa-plus"></i>Add to Collection
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-book-details">
+                    <div class="modal-book-metadata">
+                        <h2>${paper.title}</h2>
+                        <p><strong>Author(s):</strong> ${paper.author || paper.all_authors || 'Unknown'}</p>
+                        <p><strong>Year:</strong> ${paper.year || 'Unknown'}</p>
+                        ${paper.venue ? `<p><strong>Venue:</strong> <span class="venue-badge">${paper.venue}</span></p>` : ''}
+                        ${paper.citation_count ? `
+                            <div class="citation-stats">
+                                <span class="citation-count">
+                                    <i class="fas fa-quote-right"></i> ${paper.citation_count} citations
+                                </span>
+                                ${paper.influential_citation_count ? `
+                                    <span class="influential-count">
+                                        <i class="fas fa-star"></i> ${paper.influential_citation_count} influential
+                                    </span>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="book-description">
+                        <h3>Abstract</h3>
+                        <p>${paper.abstract || paper.description || 'No abstract available.'}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    const modal = document.getElementById('bookModal');
+    const modalContent = document.getElementById('modalContent');
+    modalContent.innerHTML = scholarModalHtml;
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
 }
@@ -370,84 +433,147 @@ function createScholarCard(paper) {
     return paperDiv;
 }
 
-// Function for Semantic Scholar paper modals
-function showScholarModal(paper) {
+// Function to add a book to the collection
+function addToCollection(item, type = 'book') {
+    // Create a unique ID for the book
+    const id = 'book_' + Date.now();
+    
+    // Format the book data for storage
+    const bookData = {
+        id: id,
+        title: item.title,
+        author: item.author || (Array.isArray(item.authors) ? item.authors.join(', ') : item.all_authors || 'Unknown'),
+        year: item.year || 'Unknown',
+        coverUrl: item.cover_url || '',
+        description: item.description || item.recommendation || item.abstract || '',
+        status: 'to-read',
+        totalPages: item.page_count || 0,
+        pagesRead: 0,
+        notes: '',
+        dateAdded: new Date().toISOString(),
+        source_url: item.view_url || item.reading_url || '',
+        download_url: item.download_url || '',
+        buy_link: item.buy_link || '',
+        has_ebook: item.has_ebook || false,
+        is_open_access: item.is_open_access || false,
+        venue: item.venue || '',
+        citation_count: item.citation_count || 0,
+        influential_citation_count: item.influential_citation_count || 0,
+        subjects: item.subjects || []
+    };
+    
+    // Get existing books from localStorage
+    let books = [];
+    const storedBooks = localStorage.getItem('bookTrackerBooks');
+    if (storedBooks) {
+        books = JSON.parse(storedBooks);
+    }
+    
+    // Add the new book
+    books.push(bookData);
+    
+    // Save back to localStorage
+    localStorage.setItem('bookTrackerBooks', JSON.stringify(books));
+    
+    // Show success message
+    const successMsg = document.createElement('div');
+    successMsg.className = 'success-message';
+    successMsg.innerHTML = `<i class="fas fa-check-circle"></i> Added to your collection!`;
+    document.body.appendChild(successMsg);
+    
+    // Remove the message after 3 seconds
+    setTimeout(() => {
+        successMsg.remove();
+    }, 3000);
+}
+
+// Add custom book button click handler
+function showCustomBookForm() {
     const modal = document.getElementById('bookModal');
     const modalContent = document.getElementById('modalContent');
     
-    // Format citation information
-    let citationHtml = '';
-    if (paper.citation_count > 0) {
-        citationHtml = `
-        <div class="citation-stats">
-            <span class="citation-count">
-                <i class="fas fa-quote-right"></i> ${paper.citation_count} citations
-            </span>
-            ${paper.influential_citation_count > 0 ? 
-                `<span class="influential-count">
-                    <i class="fas fa-star"></i> ${paper.influential_citation_count} influential
-                </span>` : 
-                ''}
-        </div>`;
-    }
-    
-    // Build view/download buttons
-    let viewOnlineBtn = '';
-    if (paper.view_url) {
-        viewOnlineBtn = `
-        <div class="read-online-section">
-            <a href="${paper.view_url}" target="_blank" class="read-online-btn">
-                <i class="fas fa-external-link-alt"></i> View on Semantic Scholar
-            </a>
-        </div>`;
-    }
-    
-    let downloadBtn = '';
-    if (paper.download_url) {
-        downloadBtn = `
-        <div class="buy-section">
-            <a href="${paper.download_url}" target="_blank" class="buy-btn">
-                <i class="fas fa-file-download"></i> ${paper.is_open_access ? 'Download Open Access PDF' : 'Download PDF'}
-            </a>
-        </div>`;
-    }
-    
-    // Format description (use abstract if available)
-    const description = paper.abstract || paper.description || 'No abstract available for this paper.';
-    
-    // Construct the modal HTML
-    modalContent.innerHTML = `
-        <div class="modal-book-info">
-            <div class="modal-book-cover">
-                <div class="book-cover-wrapper">
-                    <img src="${paper.cover_url || '/static/images/scholar-placeholder.svg'}" 
-                        alt="${paper.title}" 
-                        onerror="this.src='/static/images/scholar-placeholder.svg'">
-                    <div class="ebook-badge scholar-badge">
-                        <i class="fas fa-file-alt"></i> Semantic Scholar
-                    </div>
+    const formHtml = `
+        <div class="modal-header">
+            <h2>Add Custom Book</h2>
+            <button class="close-button">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="customBookForm" class="custom-book-form" onsubmit="handleCustomBookSubmit(event)">
+                <div class="form-group">
+                    <label for="title">Title *</label>
+                    <input type="text" id="title" name="title" required>
                 </div>
-                <div class="action-buttons">
-                    ${viewOnlineBtn}
-                    ${downloadBtn}
+                <div class="form-group">
+                    <label for="author">Author *</label>
+                    <input type="text" id="author" name="author" required>
                 </div>
-            </div>
-            <div class="modal-book-details">
-                <h2 class="modal-book-title">${paper.title}</h2>
-                <div class="modal-book-metadata">
-                    <p>By ${paper.all_authors || paper.author}</p>
-                    <p>Published: <span class="year-badge">${paper.year}</span> in <span class="venue-badge">${paper.venue || 'Unknown Venue'}</span></p>
+                <div class="form-group">
+                    <label for="year">Year</label>
+                    <input type="number" id="year" name="year" min="1000" max="${new Date().getFullYear()}">
                 </div>
-                ${citationHtml}
-                <div class="modal-book-recommendation">
-                    <h3>Abstract</h3>
-                    <p>${description}</p>
+                <div class="form-group">
+                    <label for="cover_url">Cover Image URL</label>
+                    <input type="url" id="cover_url" name="cover_url">
                 </div>
-            </div>
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="page_count">Total Pages</label>
+                    <input type="number" id="page_count" name="page_count" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="buy_link">Buy Link (Amazon or other)</label>
+                    <input type="url" id="buy_link" name="buy_link">
+                </div>
+                <div class="form-group">
+                    <label for="reading_url">Online Reading URL</label>
+                    <input type="url" id="reading_url" name="reading_url">
+                </div>
+                <div class="form-group">
+                    <label for="subjects">Subjects (comma-separated)</label>
+                    <input type="text" id="subjects" name="subjects">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="cancel-btn" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="submit-btn">Add Book</button>
+                </div>
+            </form>
         </div>
     `;
     
-    // Show the modal
+    modalContent.innerHTML = formHtml;
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
+}
+
+// Handle custom book form submission
+function handleCustomBookSubmit(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(event.target);
+    const bookData = {
+        id: 'book_' + Date.now(),
+        title: formData.get('title'),
+        author: formData.get('author'),
+        year: formData.get('year') || 'Unknown',
+        cover_url: formData.get('cover_url') || '',
+        description: formData.get('description') || '',
+        page_count: parseInt(formData.get('page_count')) || 0,
+        buy_link: formData.get('buy_link') || '',
+        reading_url: formData.get('reading_url') || '',
+        subjects: formData.get('subjects') ? formData.get('subjects').split(',').map(s => s.trim()) : [],
+        status: 'to-read',
+        pagesRead: 0,
+        notes: '',
+        dateAdded: new Date().toISOString(),
+        has_ebook: !!formData.get('reading_url')
+    };
+    
+    // Add to collection
+    addToCollection(bookData, 'book');
+    
+    // Close modal
+    closeModal();
 } 

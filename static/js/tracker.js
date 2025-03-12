@@ -10,17 +10,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const bookDescriptionInput = document.getElementById('bookDescription');
     const bookNotesInput = document.getElementById('bookNotes');
     const saveBookBtn = document.getElementById('saveBookBtn');
-    const addBookFloatingBtn = document.getElementById('addBookFloatingBtn');
-    const formModal = document.getElementById('formModal');
-    const formTitle = document.getElementById('formTitle');
     const booksList = document.getElementById('booksList');
     const statusFilter = document.getElementById('statusFilter');
     const searchInput = document.getElementById('searchInput');
-    
-    // Search book elements
-    const bookSearchInput = document.getElementById('bookSearchInput');
-    const searchBookBtn = document.getElementById('searchBookBtn');
-    const searchResults = document.getElementById('searchResults');
     
     // Stats elements
     const totalBooksEl = document.getElementById('totalBooks');
@@ -39,16 +31,22 @@ document.addEventListener('DOMContentLoaded', function() {
     updateStats();
     
     // Event Listeners
-    addBookFloatingBtn.addEventListener('click', showAddBookModal);
     saveBookBtn.addEventListener('click', saveBook);
     statusFilter.addEventListener('change', renderBooks);
     searchInput.addEventListener('input', renderBooks);
     
-    // Add search book functionality
-    searchBookBtn.addEventListener('click', searchBooks);
-    bookSearchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            searchBooks();
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('bookModal');
+        if (event.target == modal) {
+            closeModal();
+        }
+    }
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal();
         }
     });
     
@@ -74,197 +72,157 @@ document.addEventListener('DOMContentLoaded', function() {
         finishedCountEl.textContent = finished;
     }
     
-    function showAddBookModal() {
-        clearForm();
-        formTitle.textContent = 'Add New Book';
-        saveBookBtn.textContent = 'Add Book';
-        currentEditId = null;
-        formModal.style.display = 'block';
-        document.body.style.overflow = 'hidden';
-        bookTitleInput.focus();
-    }
-    
-    function saveBook() {
-        // Validate required fields
-        if (!bookTitleInput.value || !bookAuthorInput.value) {
-            alert('Please enter at least a title and author.');
-            return;
-        }
-        
-        const bookData = {
-            title: bookTitleInput.value,
-            author: bookAuthorInput.value,
-            status: bookStatusInput.value,
-            totalPages: totalPagesInput.value ? parseInt(totalPagesInput.value) : null,
-            pagesRead: pagesReadInput.value ? parseInt(pagesReadInput.value) : 0,
-            coverUrl: coverUrlInput.value || "https://via.placeholder.com/150x200?text=No+Cover+Available",
-            description: bookDescriptionInput.value,
-            notes: bookNotesInput.value,
-            dateAdded: new Date().toISOString()
-        };
-        
-        if (currentEditId) {
-            // Update existing book
-            const index = books.findIndex(book => book.id === currentEditId);
-            if (index !== -1) {
-                bookData.id = currentEditId;
-                books[index] = bookData;
-            }
-        } else {
-            // Add new book
-            bookData.id = generateId();
-            books.push(bookData);
-        }
-        
-        saveBooks();
-        closeFormModal();
-        renderBooks();
-        updateStats();
-    }
-    
-    function generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substring(2);
-    }
-    
-    function clearForm() {
-        bookTitleInput.value = '';
-        bookAuthorInput.value = '';
-        bookStatusInput.value = 'to-read';
-        totalPagesInput.value = '';
-        pagesReadInput.value = '';
-        coverUrlInput.value = '';
-        bookDescriptionInput.value = '';
-        bookNotesInput.value = '';
-    }
-    
-    function closeFormModal() {
-        formModal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-        currentEditId = null;
-    }
-    
     function renderBooks() {
-        const filterStatus = statusFilter.value;
+        const statusFilterValue = statusFilter.value;
         const searchTerm = searchInput.value.toLowerCase();
         
-        // Filter books
-        let filteredBooks = books;
+        // Filter books based on status and search term
+        const filteredBooks = books.filter(book => {
+            const matchesStatus = statusFilterValue === 'all' || book.status === statusFilterValue;
+            const matchesSearch = book.title.toLowerCase().includes(searchTerm) || 
+                                book.author.toLowerCase().includes(searchTerm);
+            return matchesStatus && matchesSearch;
+        });
         
-        if (filterStatus !== 'all') {
-            filteredBooks = filteredBooks.filter(book => book.status === filterStatus);
-        }
-        
-        if (searchTerm) {
-            filteredBooks = filteredBooks.filter(book => 
-                book.title.toLowerCase().includes(searchTerm) || 
-                book.author.toLowerCase().includes(searchTerm)
-            );
-        }
-        
-        // Clear books list
-        booksList.innerHTML = '';
-        
-        // Show empty state if no books
         if (filteredBooks.length === 0) {
-            const emptyState = document.createElement('div');
-            emptyState.className = 'empty-state';
-            
-            if (books.length === 0) {
-                emptyState.innerHTML = '<p>No books added yet. Click the + button to add a book!</p>';
-            } else {
-                emptyState.innerHTML = '<p>No books match your current filters.</p>';
-            }
-            
-            booksList.appendChild(emptyState);
+            booksList.innerHTML = `
+                <div class="empty-state">
+                    <p>No books found. Add books from the Book Discovery or Quick Search pages!</p>
+                </div>
+            `;
             return;
         }
         
-        // Render each book
-        filteredBooks.forEach(book => {
-            const bookCard = createBookCard(book);
-            booksList.appendChild(bookCard);
-        });
+        booksList.innerHTML = filteredBooks.map(book => createBookCard(book)).join('');
     }
     
     function createBookCard(book) {
-        const bookCard = document.createElement('div');
-        bookCard.className = 'book-card';
+        const progress = book.totalPages ? Math.round((book.pagesRead / book.totalPages) * 100) : null;
+        const statusClass = `status-${book.status.replace(/\s+/g, '-')}`;
+        const statusText = {
+            'to-read': 'To Read',
+            'reading': 'Reading',
+            'finished': 'Finished'
+        }[book.status];
         
-        let statusClass = '';
-        let statusText = '';
-        
-        switch (book.status) {
-            case 'to-read':
-                statusClass = 'status-to-read';
-                statusText = 'To Read';
-                break;
-            case 'reading':
-                statusClass = 'status-reading';
-                statusText = 'Reading';
-                break;
-            case 'finished':
-                statusClass = 'status-finished';
-                statusText = 'Finished';
-                break;
-        }
-        
-        // Calculate progress percentage
-        let progressPercent = 0;
-        let progressText = '';
-        
-        if (book.totalPages) {
-            progressPercent = Math.min(100, Math.round((book.pagesRead / book.totalPages) * 100));
-            progressText = `${book.pagesRead} / ${book.totalPages} pages (${progressPercent}%)`;
-        }
-        
-        bookCard.innerHTML = `
-            <div class="book-status ${statusClass}">${statusText}</div>
-            <div class="book-card-inner">
-                <div class="book-cover-container">
-                    <img src="${book.coverUrl || '/static/images/book-placeholder.svg'}" alt="${book.title} cover" 
+        return `
+            <div class="book-card" onclick="showBookDetails('${book.id}')">
+                <div class="book-cover">
+                    <img src="${book.coverUrl || '/static/images/book-placeholder.svg'}" 
+                         alt="${book.title} cover"
                          onerror="this.src='/static/images/book-placeholder.svg'">
                 </div>
                 <div class="book-info">
+                    <div class="book-status ${statusClass}">${statusText}</div>
                     <h3 class="book-title">${book.title}</h3>
                     <p class="book-author">by ${book.author}</p>
-                    ${book.totalPages ? `
-                        <div class="progress-container">
-                            <div class="progress-bar" style="width: ${progressPercent}%"></div>
+                    <p class="book-year">${book.year || 'Unknown'}</p>
+                    ${progress !== null ? `
+                        <div class="progress-bar">
+                            <div class="progress" style="width: ${progress}%"></div>
                         </div>
-                        <p class="progress-text">${progressText}</p>
+                        <p class="progress-text">${progress}% completed (${book.pagesRead}/${book.totalPages} pages)</p>
                     ` : ''}
-                    <div class="book-actions">
-                        <button class="book-action-btn edit-btn" data-id="${book.id}" title="Edit Book">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="book-action-btn delete-btn" data-id="${book.id}" title="Delete Book">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                </div>
+                <div class="book-actions">
+                    <button onclick="event.stopPropagation(); editBook('${book.id}')" class="icon-button edit-btn" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="event.stopPropagation(); showDeleteConfirm('${book.id}', '${book.title}')" class="icon-button delete-btn" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    function showBookDetails(id) {
+        const book = books.find(book => book.id === id);
+        if (!book) return;
+        
+        const progress = book.totalPages ? Math.round((book.pagesRead / book.totalPages) * 100) : null;
+        const statusClass = `status-${book.status.replace(/\s+/g, '-')}`;
+        const statusText = {
+            'to-read': 'To Read',
+            'reading': 'Reading',
+            'finished': 'Finished'
+        }[book.status];
+        
+        const modal = document.getElementById('bookModal');
+        const modalContent = document.getElementById('modalContent');
+        
+        // Create action buttons based on available sources
+        const readOnlineBtn = book.source_url ? `
+            <div class="read-online-section">
+                <a href="${book.source_url}" target="_blank" class="read-online-btn">
+                    <i class="fas fa-book-reader"></i> Read Online
+                </a>
+            </div>
+        ` : '';
+        
+        const downloadBtn = book.download_url ? `
+            <div class="buy-section">
+                <a href="${book.download_url}" target="_blank" class="buy-btn">
+                    <i class="fas fa-file-download"></i> Download PDF
+                </a>
+            </div>
+        ` : '';
+        
+        const buyBtn = book.buy_link ? `
+            <div class="buy-section">
+                <a href="${book.buy_link}" target="_blank" class="buy-btn">
+                    <i class="fas fa-shopping-cart"></i> Buy on Amazon
+                </a>
+            </div>
+        ` : '';
+        
+        modalContent.innerHTML = `
+            <div class="book-detail-header">
+                <div class="book-detail-cover">
+                    <img src="${book.coverUrl || '/static/images/book-placeholder.svg'}" 
+                         alt="${book.title} cover"
+                         onerror="this.src='/static/images/book-placeholder.svg'">
+                        
+                         <div class="action-buttons">
+                        ${readOnlineBtn}
+                        ${downloadBtn}
+                        ${buyBtn}
                     </div>
+                </div>
+                <div class="book-detail-info">
+                    <h2 class="book-detail-title">${book.title}</h2>
+                    <p class="book-detail-author">by ${book.author}</p>
+                    <p class="book-detail-year">${book.year || 'Unknown'}</p>
+                    <div class="book-detail-status ${statusClass}">${statusText}</div>
+                    ${progress !== null ? `
+                        <div class="book-detail-progress">
+                            <div class="progress-bar">
+                                <div class="progress" style="width: ${progress}%"></div>
+                            </div>
+                            <p class="progress-text">${progress}% completed (${book.pagesRead}/${book.totalPages} pages)</p>
+                        </div>
+                    ` : ''}
+                    ${book.description ? `
+                        <div class="book-detail-section">
+                            <h3>Description</h3>
+                            <p class="book-detail-description">${book.description}</p>
+                        </div>
+                    ` : ''}
+                    ${book.notes ? `
+                        <div class="book-detail-section">
+                            <h3>Notes</h3>
+                            <p class="book-detail-notes">${book.notes}</p>
+                        </div>
+                    ` : ''}
                 </div>
             </div>
         `;
         
-        // Add event listeners to the actions
-        bookCard.querySelector('.edit-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            showEditModal(book.id);
-        });
-        
-        bookCard.querySelector('.delete-btn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            showDeleteConfirmModal(book.id, book.title);
-        });
-        
-        // Open details modal on card click
-        bookCard.addEventListener('click', () => {
-            showBookDetails(book);
-        });
-        
-        return bookCard;
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
     }
     
-    function showEditModal(id) {
+    function editBook(id) {
         const book = books.find(book => book.id === id);
         if (!book) return;
         
@@ -278,98 +236,115 @@ document.addEventListener('DOMContentLoaded', function() {
         bookNotesInput.value = book.notes || '';
         
         currentEditId = id;
-        formTitle.textContent = 'Edit Book';
-        saveBookBtn.textContent = 'Update Book';
         
+        const formModal = document.getElementById('formModal');
         formModal.style.display = 'block';
         document.body.style.overflow = 'hidden';
     }
     
-    function deleteBook(id) {
-        const index = books.findIndex(book => book.id === id);
-        if (index !== -1) {
-            books.splice(index, 1);
-            saveBooks();
-            renderBooks();
-            updateStats();
+    function saveBook() {
+        const bookData = {
+            title: bookTitleInput.value.trim(),
+            author: bookAuthorInput.value.trim(),
+            status: bookStatusInput.value,
+            totalPages: totalPagesInput.value ? parseInt(totalPagesInput.value) : null,
+            pagesRead: pagesReadInput.value ? parseInt(pagesReadInput.value) : 0,
+            coverUrl: coverUrlInput.value.trim(),
+            description: bookDescriptionInput.value.trim(),
+            notes: bookNotesInput.value.trim()
+        };
+        
+        if (!bookData.title || !bookData.author) {
+            alert('Title and author are required!');
+            return;
         }
+        
+        if (currentEditId) {
+            // Update existing book
+            const index = books.findIndex(book => book.id === currentEditId);
+            if (index !== -1) {
+                books[index] = { ...books[index], ...bookData };
+            }
+        } else {
+            // Add new book
+            const newBook = {
+                ...bookData,
+                id: 'book_' + Date.now(),
+                dateAdded: new Date().toISOString(),
+                has_ebook: false,
+                subjects: []
+            };
+            books.push(newBook);
+        }
+        
+        saveBooks();
+        renderBooks();
+        updateStats();
+        closeFormModal();
+        
+        // Show success message
+        showSuccessMessage(currentEditId ? 'Book updated successfully!' : 'Book added successfully!');
     }
     
-    function showBookDetails(book) {
-        const modal = document.getElementById('bookModal');
-        const modalContent = document.getElementById('modalContent');
+    function deleteBook(id) {
+        books = books.filter(book => book.id !== id);
+        saveBooks();
+        renderBooks();
+        updateStats();
         
-        let statusClass = '';
-        let statusText = '';
+        // Show success message
+        const successMsg = document.createElement('div');
+        successMsg.className = 'success-message';
+        successMsg.innerHTML = `<i class="fas fa-check-circle"></i> Book deleted successfully!`;
+        document.body.appendChild(successMsg);
         
-        switch (book.status) {
-            case 'to-read':
-                statusClass = 'status-to-read';
-                statusText = 'To Read';
-                break;
-            case 'reading':
-                statusClass = 'status-reading';
-                statusText = 'Reading';
-                break;
-            case 'finished':
-                statusClass = 'status-finished';
-                statusText = 'Finished';
-                break;
-        }
-        
-        // Calculate progress
-        let progressHtml = '';
-        if (book.totalPages) {
-            const progressPercent = Math.min(100, Math.round((book.pagesRead / book.totalPages) * 100));
-            progressHtml = `
-                <div class="book-detail-progress">
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: ${progressPercent}%"></div>
-                    </div>
-                    <p class="progress-text">${book.pagesRead} / ${book.totalPages} pages (${progressPercent}%)</p>
-                </div>
-            `;
-        }
-        
-        modalContent.innerHTML = `
-            <div class="book-detail-header">
-                <div class="book-detail-cover">
-                    <img src="${book.coverUrl}" alt="${book.title} cover" 
-                         onerror="this.src='https://via.placeholder.com/150x200?text=No+Cover+Available'">
-                </div>
-                <div class="book-detail-info">
-                    <h2 class="book-detail-title">${book.title}</h2>
-                    <p class="book-detail-author">by ${book.author}</p>
-                    <div class="book-detail-status ${statusClass}">${statusText}</div>
-                    ${progressHtml}
-                </div>
-            </div>
-            
-            ${book.description ? `
-                <div class="book-detail-section">
-                    <h3>Description</h3>
-                    <p class="book-detail-description">${book.description}</p>
-                </div>
-            ` : ''}
-            
-            ${book.notes ? `
-                <div class="book-detail-section">
-                    <h3>Notes</h3>
-                    <p class="book-detail-notes">${book.notes}</p>
-                </div>
-            ` : ''}
-            
-            <div class="book-detail-actions">
-                <button class="primary-button" onclick="editBook('${book.id}')">Edit</button>
-                <button class="secondary-button" onclick="closeModal()">Close</button>
-            </div>
+        // Remove the message after 3 seconds
+        setTimeout(() => {
+            successMsg.remove();
+        }, 3000);
+    }
+    
+    function showSuccessMessage(message) {
+        const successMsg = document.createElement('div');
+        successMsg.className = 'success-message';
+        successMsg.innerHTML = `
+            <i class="fas fa-check-circle"></i>
+            ${message}
         `;
+        document.body.appendChild(successMsg);
         
-        modal.style.display = 'block';
-        document.body.style.overflow = 'hidden';
+        // Remove the message after 3 seconds
+        setTimeout(() => {
+            successMsg.remove();
+        }, 3000);
     }
     
     // Export functions to window for use in inline handlers
+    window.showBookDetails = showBookDetails;
+    window.editBook = editBook;
+    window.deleteBook = deleteBook;
+    window.showSuccessMessage = showSuccessMessage;
+    window.showCustomBookForm = showCustomBookForm;
+    
+    window.showDeleteConfirm = function(id, title) {
+        const modal = document.getElementById('deleteConfirmModal');
+        const bookTitleSpan = document.getElementById('deleteBookTitle');
+        const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+        
+        bookTitleSpan.textContent = title;
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+        
+        // Remove any existing click handler
+        confirmDeleteBtn.replaceWith(confirmDeleteBtn.cloneNode(true));
+        
+        // Add new click handler
+        document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+            deleteBook(id);
+            closeDeleteConfirmModal();
+        });
+    };
+    
     window.closeModal = function() {
         const modal = document.getElementById('bookModal');
         modal.style.display = 'none';
@@ -377,142 +352,92 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     
     window.closeFormModal = function() {
-        closeFormModal();
-    };
-    
-    window.editBook = function(id) {
-        closeModal(); // Close details modal
-        showEditModal(id); // Open edit modal
-    };
-    
-    // Close modals when clicking outside
-    window.onclick = function(event) {
-        const bookModal = document.getElementById('bookModal');
         const formModal = document.getElementById('formModal');
-        
-        if (event.target == bookModal) {
-            closeModal();
-        }
-        
-        if (event.target == formModal) {
-            closeFormModal();
-        }
+        formModal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+        currentEditId = null;
     };
     
-    // Close modals on escape key
-    window.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            closeModal();
-            closeFormModal();
-            closeDeleteConfirmModal();
-        }
-    });
-    
-    // Function to search for books using the Open Library API
-    function searchBooks() {
-        const query = bookSearchInput.value.trim();
-        if (!query) return;
-        
-        // Show loading state
-        searchResults.innerHTML = '<div class="search-loading">Searching...</div>';
-        searchResults.classList.add('active');
-        
-        // Fetch books from the API
-        fetch(`/search_books?query=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(data => {
-                if (!data.books || data.books.length === 0) {
-                    searchResults.innerHTML = '<div class="search-empty">No books found. Try a different search or add manually.</div>';
-                    return;
-                }
-                
-                // Display the search results
-                searchResults.innerHTML = '';
-                data.books.forEach(book => {
-                    const resultItem = document.createElement('div');
-                    resultItem.className = 'search-result-item';
-                    resultItem.innerHTML = `
-                        <img src="${book.cover_url || '/static/images/book-placeholder.svg'}" alt="${book.title}" class="search-result-cover">
-                        <div class="search-result-info">
-                            <div class="search-result-title">${book.title}</div>
-                            <div class="search-result-author">${book.author}</div>
-                        </div>
-                    `;
-                    
-                    // Add click event to select this book
-                    resultItem.addEventListener('click', () => selectBook(book));
-                    
-                    searchResults.appendChild(resultItem);
-                });
-            })
-            .catch(error => {
-                console.error('Error searching books:', error);
-                searchResults.innerHTML = '<div class="search-error">Error searching for books. Please try again.</div>';
-            });
-    }
-    
-    // Function to select a book from search results and get more details
-    function selectBook(book) {
-        // Pre-fill the basic information
-        bookTitleInput.value = book.title;
-        bookAuthorInput.value = book.author;
-        if (book.cover_url) {
-            coverUrlInput.value = book.cover_url;
-        }
-        
-        // Clear search results
-        searchResults.innerHTML = '';
-        searchResults.classList.remove('active');
-        bookSearchInput.value = '';
-        
-        // If we have an Open Library ID, get more detailed information
-        if (book.olid) {
-            fetch(`/book_details/${book.olid}`)
-                .then(response => response.json())
-                .then(details => {
-                    if (details.description) {
-                        bookDescriptionInput.value = details.description;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching book details:', error);
-                });
-        }
-    }
-    
-    // Show delete confirmation modal
-    function showDeleteConfirmModal(id, title) {
-        const modal = document.getElementById('deleteConfirmModal');
-        const titleSpan = document.getElementById('deleteBookTitle');
-        const confirmBtn = document.getElementById('confirmDeleteBtn');
-        
-        // Set the book title in the confirmation message
-        titleSpan.textContent = title;
-        
-        // Set up the confirm button to delete when clicked
-        confirmBtn.onclick = function() {
-            deleteBook(id);
-            closeDeleteConfirmModal();
-        };
-        
-        // Display the modal
-        modal.style.display = 'block';
-    }
-    
-    // Close delete confirmation modal
-    function closeDeleteConfirmModal() {
+    window.closeDeleteConfirmModal = function() {
         const modal = document.getElementById('deleteConfirmModal');
         modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    };
+    
+    // Add custom book button click handler
+    function showCustomBookForm() {
+        // Reset all form inputs
+        bookTitleInput.value = '';
+        bookAuthorInput.value = '';
+        bookStatusInput.value = 'to-read';
+        totalPagesInput.value = '';
+        pagesReadInput.value = '';
+        coverUrlInput.value = '';
+        bookDescriptionInput.value = '';
+        bookNotesInput.value = '';
+        
+        // Set currentEditId to null to indicate this is a new book
+        currentEditId = null;
+        
+        // Show the form modal
+        const formModal = document.getElementById('formModal');
+        formModal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
     }
+});
+
+// Modal functions
+function closeModal() {
+    const modal = document.getElementById('bookModal');
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Handle custom book form submission
+function handleCustomBookSubmit(event) {
+    event.preventDefault();
     
-    // Add closeDeleteConfirmModal to window for onclick/button access
-    window.closeDeleteConfirmModal = closeDeleteConfirmModal;
+    const formData = new FormData(event.target);
+    const bookData = {
+        id: 'book_' + Date.now(),
+        title: formData.get('title'),
+        author: formData.get('author'),
+        year: formData.get('year') || 'Unknown',
+        coverUrl: formData.get('cover_url') || '',
+        description: formData.get('description') || '',
+        totalPages: parseInt(formData.get('page_count')) || 0,
+        pagesRead: 0,
+        status: 'to-read',
+        notes: '',
+        dateAdded: new Date().toISOString(),
+        source_url: formData.get('reading_url') || '',
+        buy_link: formData.get('buy_link') || '',
+        has_ebook: !!formData.get('reading_url'),
+        subjects: formData.get('subjects') ? formData.get('subjects').split(',').map(s => s.trim()) : []
+    };
     
-    // Add modal closing on ESC and clicking outside for delete confirmation modal
-    window.addEventListener('click', function(event) {
-        const deleteModal = document.getElementById('deleteConfirmModal');
-        if (event.target == deleteModal) {
-            closeDeleteConfirmModal();
-        }
-    });
-}); 
+    // Get existing books from localStorage
+    let books = loadBooks();
+    
+    // Add the new book
+    books.push(bookData);
+    
+    // Save back to localStorage
+    localStorage.setItem('bookTrackerBooks', JSON.stringify(books));
+    
+    // Show success message
+    const successMsg = document.createElement('div');
+    successMsg.className = 'success-message';
+    successMsg.innerHTML = `<i class="fas fa-check-circle"></i> Added to your collection!`;
+    document.body.appendChild(successMsg);
+    
+    // Remove the message after 3 seconds
+    setTimeout(() => {
+        successMsg.remove();
+    }, 3000);
+    
+    // Close modal and refresh book list
+    closeModal();
+    renderBooks();
+    updateStats();
+} 
