@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authentication - Bookify</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Bookify</h1>
+        <p>Sign in to track your reading progress and save your favorite books</p>
+        <button id="googleSignIn" class="login-button">
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo">
+            Sign in with Google
+        </button>
+        <div id="loader" class="loader"></div>
+        <div id="error-message" style="color: red; margin-top: 20px; display: none;"></div>
+    </div>
+
+    <!-- Firebase App (the core Firebase SDK) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <!-- Firebase Auth -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Firebase configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyB3dxIhLUE7gqA-PQS7rvVJCgwUT5_6uJk",
+                authDomain: "bookify-ee9d0.firebaseapp.com",
+                projectId: "bookify-ee9d0",
+                storageBucket: "bookify-ee9d0.firebasestorage.app",
+                messagingSenderId: "650229262126",
+                appId: "1:650229262126:web:4b6c414dabcd9da8b37cbf",
+                measurementId: "G-TNXY1YZP5X"
+            };
+            
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            
+            // Get references to elements
+            const googleSignInBtn = document.getElementById('googleSignIn');
+            const loader = document.getElementById('loader');
+            const errorMessage = document.getElementById('error-message');
+            
+            // Add click event to the Google sign-in button
+            googleSignInBtn.addEventListener('click', function() {
+                // Show loader and hide button
+                loader.style.display = 'block';
+                googleSignInBtn.style.display = 'none';
+                errorMessage.style.display = 'none';
+                
+                // Create a Google provider
+                const provider = new firebase.auth.GoogleAuthProvider();
+                
+                // Sign in with popup
+                firebase.auth().signInWithPopup(provider)
+                    .then((result) => {
+                        // Get the user's ID token
+                        return result.user.getIdToken();
+                    })
+                    .then((idToken) => {
+                        // Send the token to the server
+                        return fetch('/process_firebase_token', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ id_token: idToken })
+                        });
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Server response was not ok: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        // Redirect to the dashboard or home page
+                        window.location.href = data.redirect;
+                    })
+                    .catch((error) => {
+                        // Hide loader and show button
+                        loader.style.display = 'none';
+                        googleSignInBtn.style.display = 'flex';
+                        
+                        // Show error message
+                        errorMessage.textContent = 'Error signing in: ' + error.message;
+                        errorMessage.style.display = 'block';
+                        console.error('Sign-in error:', error);
+                    });
+            });
+        });
+    </script>
+</body>
+</html> 

@@ -1,10 +1,14 @@
-# Python
+# Environment variables
+.env
+
+# Python files
 __pycache__/
 *.py[cod]
 *$py.class
+venv/
+env/
 *.so
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -16,21 +20,28 @@ lib64/
 parts/
 sdist/
 var/
+wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 
+# Firebase
+firebase-adminsdk.json
+
+# Exclude the example file
+!firebase-adminsdk.json.example
+
+# Local development
+.vscode/
+.idea/
+.DS_Store
+
 # Virtual Environment
-venv/
 ENV/
-.env
 
 # IDE specific files
-.idea/
-.vscode/
 *.swp
 *.swo
-.DS_Store
 
 # Local development settings
 instance/

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <title>Bookify - Sign In</title>
+</head>
+<body>
+    <header class="home-header">
+        <nav class="home-navbar">
+            <div class="container">
+                <a href="/" class="app-logo">Bookify</a>
+                <div class="nav-right">
+                    <a href="/login" class="signin-button">
+                        Sign In
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </header>
+    
+    <div class="login-container">
+        <h1 class="login-title">Welcome to Bookify</h1>
+        <p class="login-subtitle">Sign in to explore books, track your reading progress, and get personalized recommendations</p>
+        
+        <div class="login-buttons">
+            <!-- Firebase will be initialized in this page -->
+            <div id="firebaseAuthContainer"></div>
+            
+            <!-- Alternative direct Google sign-in button -->
+            <a href="#" class="google-signin-button" onclick="signInWithGoogle()">
+                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+                Sign in with Google
+            </a>
+        </div>
+        
+        <a href="/" class="back-to-home">
+            <i class="fas fa-arrow-left"></i> Back to Home
+        </a>
+    </div>
+    
+    <footer class="home-footer">
+        <div class="container">
+            <div class="footer-simple">
+                <p>&copy; 2025 Bookify. All rights reserved - <a href="/terms">Terms & Conditions</a> - <a href="/privacy">Privacy Policy</a></p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+    <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
+    <script>
+        // Function to handle Google Sign-In
+        function signInWithGoogle() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider)
+                .then((result) => {
+                    // Get the user object
+                    const user = result.user;
+                    
+                    // Get the proper Firebase ID token
+                    return user.getIdToken().then(idToken => {
+                        // Send the token to the server
+                        return fetch('/process_firebase_token', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ id_token: idToken })
+                        });
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/';
+                    } else {
+                        console.error('Authentication failed:', data.error);
+                        alert('Authentication failed: ' + data.error);
+                    }
+                })
+                .catch((error) => {
+                    // Handle errors
+                    console.error('Error during authentication:', error);
+                    alert('Error during authentication: ' + error.message);
+                });
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Authentication Callback - Bookify</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/callback.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Processing your login</h1>
+        <p>Please wait while we complete your authentication...</p>
+        <div class="loader"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Extract the token from the URL fragment
+            function extractTokenFromHash() {
+                // Get the URL fragment without the leading #
+                const hash = window.location.hash.substring(1);
+                if (!hash) {
+                    return {};
+                }
+                
+                const params = {};
+                
+                // Parse each parameter from the fragment
+                hash.split('&').forEach(item => {
+                    if (item.includes('=')) {
+                        const [key, value] = item.split('=');
+                        if (key && value) {
+                            params[key] = decodeURIComponent(value);
+                        }
+                    }
+                });
+                
+                console.log("Extracted token data:", JSON.stringify(params));
+                return params;
+            }
+            
+            // Process the authentication token
+            function processToken() {
+                const tokenData = extractTokenFromHash();
+                
+                if (!tokenData.access_token) {
+                    showError('No access token found in the URL');
+                    return;
+                }
+                
+                // Send the token to the server
+                fetch('/process_token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(tokenData)
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Server response was not ok: ' + response.status);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        showError(data.error);
+                    } else {
+                        // Redirect to the dashboard
+                        window.location.href = data.redirect;
+                    }
+                })
+                .catch(error => {
+                    showError('Error processing authentication: ' + error.message);
+                    console.error('Error details:', error);
+                });
+            }
+            
+            function showError(message) {
+                const container = document.querySelector('.container');
+                container.innerHTML = `
+                    <h1>Authentication Error</h1>
+                    <p>${message}</p>
+                    <button onclick="window.location.href='/'">Go to Home</button>
+                `;
+            }
+            
+            // Start processing the token
+            processToken();
+        });
+    </script>
+</body>
+</html> 

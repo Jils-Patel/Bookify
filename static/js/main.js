@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Add initial welcome message
     addMessageToHistory('Hi! I\'m your AI assistant. I can help you find book recommendations, research papers (both recent and archival), or answer questions about books and academic topics. How can I help you today?');
 });
 
@@ -22,21 +21,17 @@ function addMessageToHistory(message, isUser = false, items = null, responseType
     messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
     
     if (items && items.length > 0) {
-        // Create a message container for both text and items (books or papers)
         const messageContent = document.createElement('div');
         messageContent.className = 'message-content';
         
-        // Add the text message
         const textDiv = document.createElement('div');
         textDiv.className = 'message-text';
         textDiv.textContent = message;
         messageContent.appendChild(textDiv);
         
-        // Add the item grid (books or research papers)
         const itemGrid = document.createElement('div');
         itemGrid.className = 'message-book-grid';
         
-        // Add a different title based on response type
         const gridTitle = document.createElement('div');
         gridTitle.className = 'grid-title';
         
@@ -84,18 +79,10 @@ function handleUserInput() {
         return;
     }
     
-    // Add user message to chat
     addMessageToHistory(userInput, true);
-    
-    // Clear input
     document.getElementById('userInput').value = '';
-    
-    // Show loading state
-    // Show loading state
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'message assistant-message';
-
-    // Create typing animation
     const typingContainer = document.createElement('div');
     typingContainer.className = 'typing-animation';
     const typingSpan = document.createElement('span');
@@ -105,7 +92,6 @@ function handleUserInput() {
 
     document.querySelector('.chat-history').appendChild(loadingDiv);
     
-    // Get response
     fetch('/recommend', {
         method: 'POST',
         headers: {
@@ -117,15 +103,11 @@ function handleUserInput() {
     })
     .then(response => response.json())
     .then(data => {
-        // Remove loading message
         loadingDiv.remove();
         
-        // Add assistant response based on response type
         if (data.response_type === 'BOOKS' || data.response_type === 'RESEARCH_RECENT' || data.response_type === 'RESEARCH_ARCHIVE') {
-            // Add response with both message and items
             addMessageToHistory(data.ai_response, false, data.books, data.response_type);
         } else {
-            // Add text-only response
             addMessageToHistory(data.ai_response, false);
         }
     })
@@ -160,8 +142,6 @@ function createBookCard(book) {
 function createResearchCard(paper) {
     const paperDiv = document.createElement('div');
     paperDiv.className = 'book-cover research-paper';
-    
-    // Use Internet Archive thumbnail or placeholder
     const imageUrl = paper.cover_url || "/static/images/research-placeholder.svg";
     
     paperDiv.innerHTML = `
@@ -192,18 +172,15 @@ function showModal(content) {
     const modal = document.getElementById('bookModal');
     const modalContent = document.getElementById('modalContent');
     
-    // If content is a string (HTML), use it directly
     if (typeof content === 'string') {
         modalContent.innerHTML = content;
     } else {
-        // Otherwise, treat it as a book/paper object
         const subjectsHtml = content.subjects && content.subjects.length > 0 
             ? `<div class="modal-book-subjects">
                 ${content.subjects.map(subject => `<span class="subject-tag">${subject}</span>`).join('')}
                </div>`
             : '';
         
-        // Create a read online button if available
         const readOnlineHtml = content.has_ebook && content.reading_url
             ? `<div class="read-online-section">
                 <a href="${content.reading_url}" target="_blank" class="read-online-btn">
@@ -212,7 +189,6 @@ function showModal(content) {
                </div>`
             : '';
         
-        // Create Amazon buy button
         const buyButtonHtml = content.buy_link
             ? `<div class="buy-section">
                 <a href="${content.buy_link}" target="_blank" class="buy-btn">
@@ -233,7 +209,7 @@ function showModal(content) {
                         <div class="action-buttons">
                             ${readOnlineHtml}
                             ${buyButtonHtml}
-                            <button class="add-to-collection-btn" onclick='addToCollection(${JSON.stringify(content).replace(/"/g, '&quot;')}, "book")'>
+                            <button class="add-to-collection-btn" onclick="addToCollection(${JSON.stringify(content).replace(/"/g, '&quot;')}, 'book')">
                                 <i class="fas fa-plus"></i> Add to Collection
                             </button>
                         </div>
@@ -332,13 +308,13 @@ function showScholarModal(paper) {
                         ${paper.view_url ? `
                             <div class="read-online-section">
                                 <a href="${paper.view_url}" target="_blank" class="read-online-btn">
-                                    <i class="fas fa-book-reader"></i>View on Semantic Scholar
+                                    <i class="fas fa-book-reader"></i>View Online
                                 </a>
                             </div>
                         ` : ''}
                         ${paper.download_url ? `
-                            <div class="read-online-section">
-                                <a href="${paper.download_url}" target="_blank" class="read-online-btn">
+                            <div class="buy-section">
+                                <a href="${paper.download_url}" target="_blank" class="buy-btn">
                                     <i class="fas fa-download"></i>Download PDF
                                 </a>
                             </div>
@@ -389,7 +365,6 @@ function closeModal() {
     document.body.style.overflow = 'auto';
 }
 
-// Close modal when clicking outside
 window.onclick = function(event) {
     const modal = document.getElementById('bookModal');
     if (event.target == modal) {
@@ -397,22 +372,17 @@ window.onclick = function(event) {
     }
 }
 
-// Close modal on escape key
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         closeModal();
     }
 });
 
-// Create a new function for Semantic Scholar papers
 function createScholarCard(paper) {
     const paperDiv = document.createElement('div');
     paperDiv.className = 'book-cover scholar-paper';
-    
-    // Use Semantic Scholar thumbnail or placeholder
     const imageUrl = paper.cover_url || "/static/images/scholar-placeholder.svg";
     
-    // Create badge text
     let badgeText = paper.has_ebook ? 'PDF' : 'Article';
     if (paper.is_open_access && paper.has_ebook) {
         badgeText = 'Open Access';
@@ -433,12 +403,9 @@ function createScholarCard(paper) {
     return paperDiv;
 }
 
-// Function to add a book to the collection
 function addToCollection(item, type = 'book') {
-    // Create a unique ID for the book
     const id = 'book_' + Date.now();
     
-    // Format the book data for storage
     const bookData = {
         id: id,
         title: item.title,
@@ -475,19 +442,16 @@ function addToCollection(item, type = 'book') {
     // Save back to localStorage
     localStorage.setItem('bookTrackerBooks', JSON.stringify(books));
     
-    // Show success message
     const successMsg = document.createElement('div');
     successMsg.className = 'success-message';
     successMsg.innerHTML = `<i class="fas fa-check-circle"></i> Added to your collection!`;
     document.body.appendChild(successMsg);
     
-    // Remove the message after 3 seconds
     setTimeout(() => {
         successMsg.remove();
     }, 3000);
 }
 
-// Add custom book button click handler
 function showCustomBookForm() {
     const modal = document.getElementById('bookModal');
     const modalContent = document.getElementById('modalContent');
@@ -548,7 +512,6 @@ function showCustomBookForm() {
     document.body.style.overflow = 'hidden';
 }
 
-// Handle custom book form submission
 function handleCustomBookSubmit(event) {
     event.preventDefault();
     
@@ -571,9 +534,6 @@ function handleCustomBookSubmit(event) {
         has_ebook: !!formData.get('reading_url')
     };
     
-    // Add to collection
     addToCollection(bookData, 'book');
-    
-    // Close modal
     closeModal();
 } 

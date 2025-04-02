@@ -4,16 +4,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchQuery = document.getElementById('searchQuery');
     const maxResults = document.getElementById('maxResults');
     const searchButton = document.getElementById('searchButton');
-    const loadingSpinner = document.querySelector('.loading-spinner');
+    const spinner = document.getElementById('spinner');
     const searchResults = document.getElementById('searchResults');
     const modal = document.getElementById('bookModal');
     const modalContent = document.getElementById('modalContent');
     const closeButton = document.querySelector('.close-button');
 
-    // Cache for storing image load status
     const imageCache = new Map();
 
-    // Function to check if an image exists
     async function checkImage(url) {
         if (!url) return false;
         if (imageCache.has(url)) return imageCache.get(url);
@@ -32,7 +30,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Search function
+    function showErrorMessage(message) {
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'error-message';
+        errorMsg.innerHTML = `
+            <i class="fas fa-exclamation-circle"></i>
+            ${message}
+        `;
+        document.body.appendChild(errorMsg);
+        setTimeout(() => {
+            errorMsg.remove();
+        }, 3000);
+    }
     async function performSearch() {
         if (!searchSource.value) {
             alert('Please select a search source');
@@ -40,15 +49,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!searchQuery.value.trim()) {
-            alert('Please enter a search query');
+            showErrorMessage('Please enter a search query!');
             return;
         }
 
-        // Show loading spinner
-        loadingSpinner.style.display = 'flex';
+        spinner.style.display = 'block';
         searchResults.innerHTML = '';
 
-        // Build query parameters
         const params = new URLSearchParams({
             source: searchSource.value,
             query: searchQuery.value.trim(),
@@ -59,24 +66,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch(`/quick_search/results?${params.toString()}`);
             const data = await response.json();
 
-            // Hide loading spinner
-            loadingSpinner.style.display = 'none';
-
-            // Display results
+            spinner.style.display = 'none';
             const resultsHtml = await Promise.all(data.map(async (item) => {
                 let imageUrl;
                 if (item.cover_url) {
                     const imageExists = await checkImage(item.cover_url);
                     imageUrl = imageExists ? item.cover_url : 
-                        (searchSource.value === 'books' ? '/static/images/book-placeholder.png' : '/static/images/paper-placeholder.png');
+                        (searchSource.value === 'books' ? '/static/images/book-placeholder.svg' : '/static/images/paper-placeholder.png');
                 } else {
-                    imageUrl = searchSource.value === 'books' ? '/static/images/book-placeholder.png' : '/static/images/paper-placeholder.png';
+                    imageUrl = searchSource.value === 'books' ? '/static/images/book-placeholder.svg' : '/static/images/paper-placeholder.png';
                 }
-
-                // Clean and encode the item data
                 const cleanItem = {...item};
                 
-                // Clean URLs
                 if (cleanItem.cover_url) {
                     cleanItem.cover_url = cleanItem.cover_url.replace(/\s+/g, '');
                 }
@@ -86,23 +87,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (cleanItem.buy_link) {
                     cleanItem.buy_link = cleanItem.buy_link.replace(/\s+/g, '');
                 }
-                
-                // Clean description/recommendation text
                 if (cleanItem.description) {
                     cleanItem.description = cleanItem.description.replace(/\r\n/g, '\n').replace(/"/g, '&quot;');
                 }
                 if (cleanItem.recommendation) {
                     cleanItem.recommendation = cleanItem.recommendation.replace(/\r\n/g, '\n').replace(/"/g, '&quot;');
                 }
-                
-                // Stringify and encode the item data
                 const itemData = encodeURIComponent(JSON.stringify(cleanItem));
                 
                 return `
                     <div class="result-card" data-item="${itemData}" data-source="${searchSource.value}">
                         <img src="${imageUrl}" 
                              alt="${cleanItem.title}"
-                             onerror="this.src='${searchSource.value === 'books' ? '/static/images/book-placeholder.png' : '/static/images/paper-placeholder.png'}'">
+                             onerror="this.src='${searchSource.value === 'books' ? '/static/images/book-placeholder.svg' : '/static/images/paper-placeholder.png'}'">
                         <div class="info">
                             <div class="title">${cleanItem.title}</div>
                             <div class="author">${Array.isArray(cleanItem.authors) ? cleanItem.authors.join(', ') : cleanItem.author || 'Unknown Author'}</div>
@@ -128,24 +125,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
         } catch (error) {
             console.error('Search error:', error);
-            loadingSpinner.style.display = 'none';
+            spinner.style.display = 'none';
             searchResults.innerHTML = '<p class="error-message">An error occurred while searching. Please try again.</p>';
         }
     }
 
-    // Show details in modal
     window.showDetails = function(item, source) {
         let content;
         
         if (source === 'books') {
-            // Book modal content
             const subjectsHtml = item.subjects && item.subjects.length > 0 
                 ? `<div class="modal-book-subjects">
                     ${item.subjects.map(subject => `<span class="subject-tag">${subject}</span>`).join('')}
                    </div>`
                 : '';
             
-            // Create a read online button if available
             const readOnlineHtml = item.reading_url
                 ? `<div class="read-online-section">
                     <a href="${item.reading_url}" target="_blank" class="read-online-btn">
@@ -154,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function() {
                    </div>`
                 : '';
             
-            // Create Amazon buy button
             const buyButtonHtml = item.buy_link
                 ? `<div class="buy-section">
                     <a href="${item.buy_link}" target="_blank" class="buy-btn">
@@ -195,7 +188,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         } else if (source === 'recent_research' || source === 'semantic_scholar') {
-            // Semantic Scholar paper modal content
             const citationHtml = item.citation_count > 0 
                 ? `<div class="citation-stats">
                     <span class="citation-count">
@@ -261,7 +253,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         } else {
-            // Archive research paper modal content
             const viewOnlineBtn = item.view_url
                 ? `<div class="read-online-section">
                     <a href="${item.view_url}" target="_blank" class="read-online-btn">
@@ -319,7 +310,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.overflow = 'hidden';
     };
 
-    // Event listeners
     searchButton.addEventListener('click', performSearch);
 
     searchForm.addEventListener('submit', (e) => {
@@ -327,7 +317,6 @@ document.addEventListener('DOMContentLoaded', function() {
         performSearch();
     });
 
-    // Close modal
     closeButton.onclick = function() {
         modal.style.display = 'none';
         document.body.style.overflow = 'auto';
@@ -340,7 +329,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     };
 
-    // Handle Enter key in search query field
     searchQuery.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             e.preventDefault();
@@ -348,7 +336,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Close modal on escape key
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             modal.style.display = 'none';
@@ -356,41 +343,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add the addToCollection function
     window.addToCollection = function(item, type) {
+        
         const bookData = {
             title: item.title,
             author: item.author || (Array.isArray(item.authors) ? item.authors.join(', ') : item.all_authors),
             description: item.description || item.abstract || item.recommendation || '',
-            coverUrl: item.cover_url,
-            totalPages: null,
-            pagesRead: 0,
+            cover_url: item.cover_url,
+            total_pages: null,
+            pages_read: 0,
             status: 'to-read',
             notes: '',
-            type: type,
             source_url: item.reading_url || item.view_url || item.url || null,
             download_url: item.download_url || null,
+            buy_link: item.buy_link || null,
             year: item.year || 'Unknown'
         };
-
-        // Save to localStorage
-        let books = JSON.parse(localStorage.getItem('bookTrackerBooks') || '[]');
-        bookData.id = Date.now().toString(); // Generate unique ID
-        books.push(bookData);
-        localStorage.setItem('bookTrackerBooks', JSON.stringify(books));
-
-        // Show success message
-        const successMsg = document.createElement('div');
-        successMsg.className = 'success-message';
-        successMsg.innerHTML = `
-            <i class="fas fa-check-circle"></i>
-            Added to your collection!
+        
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.className = 'loading-indicator';
+        loadingIndicator.innerHTML = `
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Adding to your collection...</div>
         `;
-        document.body.appendChild(successMsg);
-
-        // Remove the message after 3 seconds
-        setTimeout(() => {
-            successMsg.remove();
-        }, 3000);
+        document.body.appendChild(loadingIndicator);
+        
+        addBookToCollection(bookData)
+            .then(() => {
+                loadingIndicator.remove();
+                console.log('Book added successfully');
+            })
+            .catch(error => {
+                loadingIndicator.remove();
+                showErrorMessage(`Error adding to collection: ${error.message}`);
+            });
     };
 }); 

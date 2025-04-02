@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Contact Us - Bookify</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+        <style>
+            .contact-container {
+                max-width: 900px;
+                margin: 0 auto;
+                padding: 40px 20px;
+            }
+            
+            .contact-header {
+                margin-bottom: 40px;
+                text-align: center;
+            }
+            
+            .contact-header h1 {
+                color: #333;
+                font-size: 2rem;
+                margin-bottom: 15px;
+            }
+            
+            .contact-header p {
+                color: #666;
+                max-width: 600px;
+                margin: 0 auto;
+                line-height: 1.6;
+            }
+            
+            .contact-form {
+                background-color: white;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+                max-width: 600px;
+                margin: 0 auto;
+            }
+            
+            .form-group {
+                margin-bottom: 20px;
+            }
+            
+            .form-group label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: 500;
+                color: #333;
+            }
+            
+            .form-control {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-family: 'Inter', sans-serif;
+                font-size: 1rem;
+            }
+            
+            textarea.form-control {
+                min-height: 150px;
+                resize: vertical;
+            }
+            
+            .submit-btn {
+                background-color: #4299e1;
+                color: white;
+                border: none;
+                padding: 12px 25px;
+                border-radius: 4px;
+                font-size: 1rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                display: block;
+                width: 100%;
+            }
+            
+            .submit-btn:hover {
+                background-color: #3182ce;
+                transform: translateY(-2px);
+            }
+            
+            .contact-info {
+                margin-top: 40px;
+                text-align: center;
+            }
+            
+            .contact-info h2 {
+                color: #333;
+                font-size: 1.5rem;
+                margin-bottom: 20px;
+            }
+            
+            .contact-info-item {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 15px;
+            }
+            
+            .contact-info-item i {
+                color: #4299e1;
+                font-size: 1.2rem;
+                margin-right: 10px;
+            }
+            
+            .back-to-home {
+                display: inline-block;
+                margin-top: 30px;
+                color: #4299e1;
+                text-decoration: none;
+                text-align: center;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="contact-container">
+            <div class="contact-header">
+                <h1>Contact Us</h1>
+                <p>Have a question or feedback? We'd love to hear from you. Fill out the form below and we'll get back to you as soon as possible.</p>
+            </div>
+            
+            <div class="contact-form">
+                <form action="#" method="post" id="contactForm">
+                    <div class="form-group">
+                        <label for="name">Name</label>
+                        <input type="text" id="name" name="name" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <input type="text" id="subject" name="subject" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="message">Message</label>
+                        <textarea id="message" name="message" class="form-control" required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="submit-btn">Send Message</button>
+                </form>
+            </div>
+            
+            <div class="contact-info">
+                <h2>Other Ways to Reach Us</h2>
+                <div class="contact-info-item">
+                    <i class="fas fa-envelope"></i>
+                    <span>support@bookify.com</span>
+                </div>
+                <div class="contact-info-item">
+                    <i class="fas fa-phone"></i>
+                    <span>+1 (555) 123-4567</span>
+                </div>
+                
+                <a href="/" class="back-to-home">Back to Home</a>
+            </div>
+        </div>
+        
+        <script>
+            document.getElementById('contactForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                alert('Thank you for your message! This is a demo form and does not actually send emails.');
+                this.reset();
+            });
+        </script>
+    </body>
+</html> 

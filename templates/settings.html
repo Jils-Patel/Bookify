@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Account Settings - Bookify</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+    </head>
+    <body>
+        <div class="app-layout">
+            <div class="side-navbar" id="sideNavbar">
+                <button id="navbarClose" class="navbar-close">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="/homepage" class="nav-link" title="Home">
+                    <i class="fas fa-home"></i>
+                </a>
+                <a href="/dashboard" class="nav-link" title="Dashboard">
+                    <i class="fas fa-chart-pie"></i>
+                </a>
+                <a href="/" class="nav-link" title="AI Assistant">
+                    <i class="fas fa-robot"></i>
+                </a>
+                <a href="/quick_search" class="nav-link" title="Quick Search">
+                    <i class="fas fa-search"></i>
+                </a>
+                <a href="/tracker" class="nav-link" title="Book Tracker">
+                    <i class="fa-solid fa-list-check"></i>
+                </a>
+                <a href="/settings" class="nav-link active" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </a>
+            </div>
+            
+            <div class="main-content">
+                <div class="top-navbar">
+                    <button id="menuToggle" class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <a href="/homepage" class="app-logo">Bookify</a>
+                    
+                    <div class="user-info" id="userProfile">
+                        <div class="user-avatar">
+                            {% if session['user']['avatar_url'] %}
+                                <img src="{{ session['user']['avatar_url'] }}" alt="{{ session['user']['name'] }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                            {% else %}
+                                {{ session['user']['name'][0]|upper if session['user']['name'] else 'U' }}
+                            {% endif %}
+                        </div>
+                        <div class="user-name">{{ session['user']['name'] }}</div>
+                        <i class="fas fa-chevron-down" style="margin-left: 10px; color: rgba(255, 255, 255, 0.7);"></i>
+                        
+                        <div class="user-dropdown" id="userDropdown">
+                            <a href="/logout" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Sign Out
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-area">
+                    <div class="settings-container">
+                        <h1 class="page-title">Account Settings</h1>
+                        
+                        <!-- Subscription Plan Section -->
+                        <div class="settings-card">
+                            <div class="settings-header">
+                                <h2><i class="fas fa-credit-card"></i> Subscription Plan</h2>
+                            </div>
+                            <div class="settings-body">
+                                <div class="subscription-info">
+                                    <div class="subscription-icon">
+                                        <i class="fas fa-star"></i>
+                                    </div>
+                                    <div class="subscription-details">
+                                        <div class="subscription-name">Current Plan: <span id="currentPlan">Free Plan</span></div>
+                                        <div class="subscription-price" id="currentPrice">$0/month</div>
+                                    </div>
+                                </div>
+                                
+                                <h3>Change Plan:</h3>
+                                <div class="plan-options">
+                                    <div class="plan-option selected" data-plan="free">
+                                        <div class="plan-name">Free Plan</div>
+                                        <div class="plan-price">$0/month</div>
+                                        <div class="plan-features">
+                                            <ul>
+                                                <li><i class="fas fa-check-circle"></i> <b>5</b>&nbsp;AI Queries Daily</li>
+                                                <li><i class="fas fa-check-circle"></i> Top&nbsp;<b>5</b>&nbsp;Results for Quick Search</li>
+                                                <li><i class="fas fa-check-circle"></i> Track up to&nbsp;<b>5</b>&nbsp;Books</li>
+                                                <li><i class="fas fa-check-circle"></i> <b>Limited</b>&nbsp;Archive and Research</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="plan-option" data-plan="pro">
+                                        <div class="plan-name">Pro Plan</div>
+                                        <div class="plan-price">$1.99/month</div>
+                                        <div class="plan-features">
+                                            <ul>
+                                                <li><i class="fas fa-check-circle"></i> <b>Unlimited</b>&nbsp;AI Queries</li>
+                                                <li><i class="fas fa-check-circle"></i> Up to&nbsp;<b>25</b>&nbsp;Results for Quick Search</li>
+                                                <li><i class="fas fa-check-circle"></i> Track up to&nbsp;<b>50</b>&nbsp;Books</li>
+                                                <li><i class="fas fa-check-circle"></i> <b>Full</b>&nbsp;Archive and Research Access</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="action-buttons-container">
+                                    <div class="action-buttons">
+                                        <button type="button" class="cancel-button">Cancel</button>
+                                        <button type="button" class="save-button" id="savePlanBtn">Update Plan</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- User Preferences Section -->
+                        <div class="settings-card">
+                            <div class="settings-header">
+                                <h2><i class="fas fa-user-cog"></i> Reading Preferences</h2>
+                            </div>
+                            <div class="settings-body">
+                                <form id="preferencesForm">
+                                    <div class="form-group">
+                                        <label for="readingPreferences">Reading Preferences (mood, genres, topics, authors, etc.)</label>
+                                        <textarea id="readingPreferences" class="form-input" rows="4" placeholder="Example: Science fiction, fantasy, historical non-fiction; Authors like J.K. Rowling, William Shakespeare; In the mood for slow-burning mystery and psychological thriller."></textarea>
+                                    </div>
+                                    
+                                    <div class="action-buttons-container">
+                                        <div class="action-buttons">
+                                            <button type="button" class="cancel-button">Cancel</button>
+                                            <button type="submit" class="save-button">Save Preferences</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Firebase SDK -->
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+        
+        <!-- Firebase Config -->
+        <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
+        
+        <script>
+            // Toggle the side navbar on mobile
+            document.getElementById('menuToggle').addEventListener('click', function() {
+                document.getElementById('sideNavbar').classList.add('active');
+            });
+            
+            document.getElementById('navbarClose').addEventListener('click', function() {
+                document.getElementById('sideNavbar').classList.remove('active');
+            });
+            
+            // User dropdown functionality
+            document.getElementById('userProfile').addEventListener('click', function() {
+                document.getElementById('userDropdown').classList.toggle('active');
+            });
+            
+            // Close dropdown when clicking elsewhere
+            window.addEventListener('click', function(e) {
+                if (!document.getElementById('userProfile').contains(e.target)) {
+                    document.getElementById('userDropdown').classList.remove('active');
+                }
+            });
+            
+            // Initialize UI
+            document.querySelector('.plan-option[data-plan="free"]').classList.add('selected');
+            
+            // Toggle plan selection
+            document.querySelectorAll('.plan-option').forEach(function(plan) {
+                plan.addEventListener('click', function() {
+                    // Remove selected class from all plans
+                    document.querySelectorAll('.plan-option').forEach(function(p) {
+                        p.classList.remove('selected');
+                    });
+                    
+                    // Add selected class to the clicked plan
+                    this.classList.add('selected');
+                });
+            });
+            
+            // Save plan button
+            document.getElementById('savePlanBtn').addEventListener('click', function() {
+                const selectedPlan = document.querySelector('.plan-option.selected').getAttribute('data-plan');
+                let planName, planPrice, planFeatures;
+                
+                switch(selectedPlan) {
+                    case 'free':
+                        planName = 'Free Plan';
+                        planPrice = '$0/month';
+                        planFeatures = [
+                            '<i class="fas fa-check-circle"></i> <b>5</b>&nbsp;AI Queries Daily',
+                            '<i class="fas fa-check-circle"></i> Top&nbsp;<b>5</b>&nbsp;Results for Quick Search',
+                            '<i class="fas fa-check-circle"></i> Track up to&nbsp;<b>5</b>&nbsp;Books',
+                            '<i class="fas fa-check-circle"></i> <b>Limited</b>&nbsp;Archive and Research'
+                        ];
+                        break;
+                    case 'pro':
+                        planName = 'Pro Plan';
+                        planPrice = '$1.99/month';
+                        planFeatures = [
+                            '<i class="fas fa-check-circle"></i> <b>Unlimited</b>&nbsp;AI Queries',
+                            '<i class="fas fa-check-circle"></i> Up to&nbsp;<b>25</b>&nbsp;Results for Quick Search',
+                            '<i class="fas fa-check-circle"></i> Track up to&nbsp;<b>50</b>&nbsp;Books',
+                            '<i class="fas fa-check-circle"></i> <b>Full</b>&nbsp;Archive and Research Access'
+                        ];
+                        break;
+                }
+                
+                // Update the display
+                document.getElementById('currentPlan').textContent = planName;
+                document.getElementById('currentPrice').textContent = planPrice;
+                
+                // Update plan features list
+                const featuresList = document.getElementById('planFeatures');
+                featuresList.innerHTML = '';
+                planFeatures.forEach(feature => {
+                    const li = document.createElement('li');
+                    li.innerHTML = feature;
+                    featuresList.appendChild(li);
+                });
+                
+                // Send the selected plan to Firestore via our API endpoint
+                updateUserSettings({
+                    subscription_plan: selectedPlan
+                }, 'Your subscription plan has been updated successfully!');
+            });
+            
+            // Preferences form submission
+            document.getElementById('preferencesForm').addEventListener('submit', function(e) {
+                e.preventDefault();
+                const preferences = document.getElementById('readingPreferences').value;
+                
+                // Send preferences to Firestore via our API endpoint
+                updateUserSettings({
+                    reading_preferences: preferences
+                }, 'Your reading preferences have been saved!');
+            });
+            
+            // Function to update user settings in Firestore
+            function updateUserSettings(settingsData, successMessage) {
+                // Show loading indicator
+                const loadingMsg = document.createElement('div');
+                loadingMsg.className = 'loading-message';
+                loadingMsg.innerHTML = `
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Saving your settings...
+                `;
+                document.body.appendChild(loadingMsg);
+                
+                // Get the current Firebase ID token
+                firebase.auth().currentUser.getIdToken(true)
+                    .then(idToken => {
+                        // Send to the server
+                        return fetch('/update_settings', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${idToken}`
+                            },
+                            body: JSON.stringify(settingsData)
+                        });
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Remove loading indicator
+                        loadingMsg.remove();
+                        
+                        if (data.success) {
+                            // Show success message
+                            const successMsg = document.createElement('div');
+                            successMsg.className = 'success-message';
+                            successMsg.innerHTML = `
+                                <i class="fas fa-check-circle"></i>
+                                ${successMessage}
+                            `;
+                            document.body.appendChild(successMsg);
+                            
+                            // Remove the success message after 3 seconds
+                            setTimeout(() => {
+                                successMsg.remove();
+                            }, 3000);
+                            
+                            // Dispatch an event to notify other parts of the app
+                            window.dispatchEvent(new CustomEvent('userSettingsChanged', {
+                                detail: settingsData
+                            }));
+                        } else {
+                            // Show error message
+                            const errorMsg = document.createElement('div');
+                            errorMsg.className = 'error-message';
+                            errorMsg.innerHTML = `
+                                <i class="fas fa-exclamation-circle"></i>
+                                Error: ${data.error || 'Could not save settings'}
+                            `;
+                            document.body.appendChild(errorMsg);
+                            
+                            // Remove the error message after 5 seconds
+                            setTimeout(() => {
+                                errorMsg.remove();
+                            }, 5000);
+                        }
+                    })
+                    .catch(error => {
+                        // Remove loading indicator
+                        if (loadingMsg) {
+                            loadingMsg.remove();
+                        }
+                        
+                        console.error('Error saving settings:', error);
+                        
+                        // Show error message
+                        const errorMsg = document.createElement('div');
+                        errorMsg.className = 'error-message';
+                        errorMsg.innerHTML = `
+                            <i class="fas fa-exclamation-circle"></i>
+                            Error: Could not save settings. Please try again.
+                        `;
+                        document.body.appendChild(errorMsg);
+                        
+                        // Remove the error message after 5 seconds
+                        setTimeout(() => {
+                            errorMsg.remove();
+                        }, 5000);
+                    });
+            }
+            
+            // Load user settings from Firestore when the page loads
+            document.addEventListener('DOMContentLoaded', function() {
+                // Check if user is authenticated
+                firebase.auth().onAuthStateChanged(function(user) {
+                    if (user) {
+                        console.log('User is authenticated, loading settings...');
+                        loadUserSettings();
+                    } else {
+                        console.error('User is not authenticated');
+                        // Show a warning message
+                        const errorMsg = document.createElement('div');
+                        errorMsg.className = 'error-message';
+                        errorMsg.innerHTML = `
+                            <i class="fas fa-exclamation-circle"></i>
+                            You need to be logged in to access settings. Please refresh the page or log in again.
+                        `;
+                        document.body.appendChild(errorMsg);
+                    }
+                });
+            });
+            
+            // Function to load user settings from Firestore
+            function loadUserSettings() {
+                // Show loading indicator
+                const loadingMsg = document.createElement('div');
+                loadingMsg.className = 'loading-message';
+                loadingMsg.innerHTML = `
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Loading your settings...
+                `;
+                document.body.appendChild(loadingMsg);
+                
+                // Get the current Firebase ID token
+                firebase.auth().currentUser.getIdToken(true)
+                    .then(idToken => {
+                        // Use the token in the request
+                        return fetch('/get_settings', {
+                            headers: {
+                                'Authorization': `Bearer ${idToken}`
+                            }
+                        });
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(settings => {
+                        // Remove loading indicator
+                        loadingMsg.remove();
+                        
+                        // Update UI with fetched settings
+                        if (settings.reading_preferences) {
+                            document.getElementById('readingPreferences').value = settings.reading_preferences;
+                        }
+                        
+                        if (settings.subscription_plan) {
+                            // Remove selected class from all plans
+                            document.querySelectorAll('.plan-option').forEach(function(p) {
+                                p.classList.remove('selected');
+                            });
+                            
+                            // Add selected class to the current plan
+                            const planElement = document.querySelector(`.plan-option[data-plan="${settings.subscription_plan}"]`);
+                            if (planElement) {
+                                planElement.classList.add('selected');
+                            }
+                            
+                            // Update plan display
+                            let planName, planPrice, planFeatures;
+                            
+                            switch(settings.subscription_plan) {
+                                case 'free':
+                                    planName = 'Free Plan';
+                                    planPrice = '$0/month';
+                                    planFeatures = [
+                                        '<i class="fas fa-check-circle"></i> <b>5</b>&nbsp;AI Queries Daily',
+                                        '<i class="fas fa-check-circle"></i> Top&nbsp;<b>5</b>&nbsp;Results for Quick Search',
+                                        '<i class="fas fa-check-circle"></i> Track up to&nbsp;<b>5</b>&nbsp;Books',
+                                        '<i class="fas fa-check-circle"></i> <b>Limited</b>&nbsp;Archive and Research'
+                                    ];
+                                    break;
+                                case 'pro':
+                                    planName = 'Pro Plan';
+                                    planPrice = '$1.99/month';
+                                    planFeatures = [
+                                        '<i class="fas fa-check-circle"></i> <b>Unlimited</b>&nbsp;AI Queries',
+                                        '<i class="fas fa-check-circle"></i> Up to&nbsp;<b>25</b>&nbsp;Results for Quick Search',
+                                        '<i class="fas fa-check-circle"></i> Track up to&nbsp;<b>50</b>&nbsp;Books',
+                                        '<i class="fas fa-check-circle"></i> <b>Full</b>&nbsp;Archive and Research Access'
+                                    ];
+                                    break;
+                                default:
+                                    planName = 'Free Plan';
+                                    planPrice = '$0/month';
+                                    planFeatures = [
+                                        '<i class="fas fa-check-circle"></i> <b>5</b>&nbsp;AI Queries Daily',
+                                        '<i class="fas fa-check-circle"></i> Top&nbsp;<b>5</b>&nbsp;Results for Quick Search',
+                                        '<i class="fas fa-check-circle"></i> Track up to&nbsp;<b>5</b>&nbsp;Books',
+                                        '<i class="fas fa-check-circle"></i> <b>Limited</b>&nbsp;Archive and Research'
+                                    ];
+                            }
+                            
+                            // Update the display
+                            document.getElementById('currentPlan').textContent = planName;
+                            document.getElementById('currentPrice').textContent = planPrice;
+                            
+                            // Update plan features list
+                            const featuresList = document.getElementById('planFeatures');
+                            if (featuresList) {
+                                featuresList.innerHTML = '';
+                                planFeatures.forEach(feature => {
+                                    const li = document.createElement('li');
+                                    li.innerHTML = feature;
+                                    featuresList.appendChild(li);
+                                });
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        // Remove loading indicator
+                        if (loadingMsg) {
+                            loadingMsg.remove();
+                        }
+                        
+                        console.error('Error loading settings:', error);
+                        
+                        // Show error message
+                        const errorMsg = document.createElement('div');
+                        errorMsg.className = 'error-message';
+                        errorMsg.innerHTML = `
+                            <i class="fas fa-exclamation-circle"></i>
+                            Error: Could not load settings. Please try again.
+                        `;
+                        document.body.appendChild(errorMsg);
+                        
+                        // Remove the error message after 5 seconds
+                        setTimeout(() => {
+                            errorMsg.remove();
+                        }, 5000);
+                    });
+            }
+            
+            // Handle cancel buttons
+            document.querySelectorAll('.cancel-button').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Reset form or close section
+                    if (this.closest('form')) {
+                        this.closest('form').reset();
+                        // Reload original settings from the server
+                        loadUserSettings();
+                    }
+                });
+            });
+            
+            // Add styling for messages
+            const messageStyles = `
+                .loading-message {
+                    position: fixed;
+                    bottom: 30px;
+                    right: 30px;
+                    background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    z-index: 1000;
+                }
+                
+                .success-message {
+                    position: fixed;
+                    bottom: 30px;
+                    right: 30px;
+                    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+                    z-index: 1000;
+                }
+                
+                .error-message {
+                    position: fixed;
+                    bottom: 30px;
+                    right: 30px;
+                    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+                    color: white;
+                    padding: 15px 25px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                    z-index: 1000;
+                }
+                
+                @keyframes slideIn {
+                    from {
+                        transform: translateY(20px);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                }
+                
+                @keyframes fadeOut {
+                    from {
+                        transform: translateY(0);
+                        opacity: 1;
+                    }
+                    to {
+                        transform: translateY(-20px);
+                        opacity: 0;
+                    }
+                }
+            `;
+
+            // Add styles to document
+            const messageStyleSheet = document.createElement("style");
+            messageStyleSheet.textContent = messageStyles;
+            document.head.appendChild(messageStyleSheet);
+        </script>
+    </body>
+</html> 

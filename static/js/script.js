@@ -1,51 +1,43 @@
-// Add this function to handle adding items to collection
 function addToCollection(item, type) {
+    if (!firebase.auth().currentUser) {
+        showErrorMessage('Please log in to add books to your collection');
+        return;
+    }
+    
     const bookData = {
-        id: Date.now().toString(),
         title: item.title,
         author: item.author || (Array.isArray(item.authors) ? item.authors.join(', ') : item.all_authors),
         description: item.description || item.abstract || item.recommendation || '',
-        coverUrl: item.cover_url,
-        totalPages: null,
-        pagesRead: 0,
+        cover_url: item.cover_url,
+        total_pages: item.total_pages || null,
+        pages_read: 0,
         status: 'to-read',
         notes: '',
-        type: type,
         source_url: item.reading_url || item.view_url || item.url || null,
         download_url: item.download_url || null,
+        buy_link: item.buy_link || null,
         year: item.year || 'Unknown'
     };
-
-    // Save to localStorage
-    let books = JSON.parse(localStorage.getItem('bookTrackerBooks') || '[]');
-    books.push(bookData);
-    localStorage.setItem('bookTrackerBooks', JSON.stringify(books));
-
-    // Show success message
-    const successMsg = document.createElement('div');
-    successMsg.className = 'success-message';
-    successMsg.innerHTML = `
-        <i class="fas fa-check-circle"></i>
-        Added "${bookData.title}" to your collection!
-    `;
-    document.body.appendChild(successMsg);
-
-    // Remove the message after 3 seconds
-    setTimeout(() => {
-        successMsg.remove();
-    }, 3000);
+    showLoading('Adding to your collection...');
+    
+    addBookToCollection(bookData)
+        .then(() => {
+            hideLoading();
+            console.log('Book added successfully');
+        })
+        .catch(error => {
+            hideLoading();
+            console.error('Error adding book to collection:', error);
+        });
 }
 
-// Update the createBookCard function to include the Add to Collection button
 function createBookCard(book) {
     const card = document.createElement('div');
     card.className = 'book-cover';
     
-    // Create the cover image wrapper
     const coverWrapper = document.createElement('div');
     coverWrapper.className = 'book-cover-wrapper';
     
-    // Add the cover image
     const img = document.createElement('img');
     img.src = book.cover_url || '/static/images/book-placeholder.svg';
     img.alt = book.title;
@@ -54,7 +46,6 @@ function createBookCard(book) {
     };
     coverWrapper.appendChild(img);
     
-    // Add e-book badge if available
     if (book.has_ebook) {
         const badge = document.createElement('div');
         badge.className = 'ebook-badge';
@@ -64,7 +55,6 @@ function createBookCard(book) {
     
     card.appendChild(coverWrapper);
     
-    // Add book info
     const info = document.createElement('div');
     info.className = 'book-info';
     info.innerHTML = `
@@ -73,26 +63,7 @@ function createBookCard(book) {
         <div class="book-year">${book.year || ''}</div>
     `;
     card.appendChild(info);
-    
-    // Add action buttons
-    const actions = document.createElement('div');
-    actions.className = 'book-actions';
-    
-    // Add to Collection button
-    const addButton = document.createElement('button');
-    addButton.className = 'add-to-collection-btn';
-    addButton.innerHTML = '<i class="fas fa-plus"></i> Add to Collection';
-    addButton.onclick = (e) => {
-        e.stopPropagation();
-        addToCollection(book, 'book');
-    };
-    actions.appendChild(addButton);
-    
-    card.appendChild(actions);
-    
-    // Add click event to show details
     card.addEventListener('click', () => showBookDetails(book));
-    
     return card;
 }
 
@@ -148,12 +119,10 @@ const addToCollectionStyles = `
     }
 `;
 
-// Add styles to document
 const styleSheet = document.createElement("style");
 styleSheet.textContent = addToCollectionStyles;
 document.head.appendChild(styleSheet);
 
-// Update the showBookDetails function to include the Add to Collection button
 function showBookDetails(book) {
     const modal = document.getElementById('bookModal');
     const modalContent = document.getElementById('modalContent');
@@ -202,6 +171,5 @@ function showBookDetails(book) {
     document.body.style.overflow = 'hidden';
 }
 
-// Make sure to expose the addToCollection function globally
 window.addToCollection = addToCollection;
 window.showBookDetails = showBookDetails; 

@@ -1,0 +1,552 @@
+ /* Container */
+ .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    width: 100%;
+}
+
+/* Main content style update */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Make the top navbar sticky */
+.top-navbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Home main area */
+.home-main {
+    flex: 1;
+    width: 100%;
+}
+
+/* Hero Section - Modified for seamless integration */
+#hero {
+    padding: 60px 0;
+    background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.hero-content {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+    margin-top: 30px;
+    margin-bottom: 60px;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 20px;
+    line-height: 1.2;
+}
+
+.hero-subtitle {
+    font-size: 1.3rem;
+    color: #555;
+    margin-bottom: 30px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* Updated section spacing */
+.home-main section {
+    padding: 60px 0;
+    border-bottom: 0;
+    margin: 0;
+}
+
+.how-it-works-section {
+    background: #f8f9fa;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.primary-button {
+    background-color: #4299e1;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.secondary-button {
+    background-color: transparent;
+    color: #4299e1;
+    padding: 12px 25px;
+    border: 1px solid #4299e1;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.primary-button:hover {
+    background-color: #3182ce;
+    transform: translateY(-2px);
+}
+
+.secondary-button:hover {
+    background-color: rgba(66, 153, 225, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Section Styling */
+.home-main section {
+    padding: 80px 0;
+}
+
+.section-title {
+    font-size: 2.2rem;
+    text-align: center;
+    margin-bottom: 50px;
+    color: #000;
+    position: relative;
+}
+
+.section-title:after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background-color: #4299e1;
+}
+
+/* How It Works Section */
+.steps-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 30px;
+    flex-wrap: wrap;
+}
+
+.step {
+    flex: 1;
+    min-width: 250px;
+    text-align: center;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+    background-color: white;
+    transition: all 0.3s ease;
+}
+
+.step:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
+}
+
+.step-icon {
+    font-size: 2.5rem;
+    color: #4299e1;
+    margin-bottom: 20px;
+}
+
+.step h3 {
+    font-size: 1.4rem;
+    margin-bottom: 15px;
+    color: #000;
+}
+
+.step p {
+    color: #555;
+    line-height: 1.6;
+}
+
+/* Demo Section */
+.demo-section {
+    background-color: #f8f9fa;
+}
+
+.video-container {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    aspect-ratio: 16/9;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Features Section */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 30px;
+}
+
+.feature-card-img {
+    background-color: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.feature-card-img:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+}
+
+.feature-img {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+}
+
+.feature-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.feature-card-img:hover .feature-img img {
+    transform: scale(1.05);
+}
+
+.feature-card-img .feature-title {
+    font-size: 1.4rem;
+    margin: 20px 20px 10px;
+    font-weight: 600;
+    color: #000;
+}
+
+.feature-card-img .feature-desc {
+    color: #555;
+    font-size: 1rem;
+    line-height: 1.6;
+    padding: 0 20px 25px;
+    flex-grow: 1;
+}
+
+/* Pricing Section Styles */
+.pricing-section {
+    padding: 30px 0;
+    background: #f8f9fa;
+}
+
+.pricing-subtitle {
+    text-align: center;
+    max-width: 700px;
+    margin: 0 auto 30px;
+    font-size: 1.2rem;
+    color: #555;
+}
+
+.pricing-cards {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.pricing-card {
+    flex: 1 1 300px;
+    min-width: 280px;
+    max-width: 350px;
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    overflow: visible;
+    transition: all 0.3s ease;
+    position: relative;
+    border: 1px solid #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    width: 350px;
+}
+
+.pricing-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.pricing-header {
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid #f1f1f1;
+    border-radius: 14px 14px 0 0;
+}
+
+.plan-name {
+    font-size: 1.6rem;
+    color: #2d3748;
+    margin-bottom: 15px;
+}
+
+.plan-price {
+    margin-bottom: 15px;
+}
+
+.price {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #4299e1;
+}
+
+.period {
+    font-size: 1rem;
+    color: #718096;
+}
+
+.plan-description {
+    color: #718096;
+    font-size: 1rem;
+}
+
+.pricing-features {
+    padding: 20px;
+    flex: 1;
+}
+
+.pricing-features ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.pricing-features li {
+    margin-bottom: 10px;
+    color: #4a5568;
+    display: flex;
+    align-items: flex-start;
+    line-height: 1.4;
+}
+
+.pricing-features li i {
+    margin-right: 10px;
+    color: #48bb78;
+    font-size: 0.9rem;
+    width: 20px;
+    text-align: center;
+    margin-top: 3px;
+}
+
+.pricing-features li.disabled {
+    color: #a0aec0;
+}
+
+.pricing-features li.disabled i {
+    color: #e53e3e;
+}
+
+.pricing-features li b {
+    color: #2d3748;
+    font-weight: 600;
+    margin-right: 5px;
+}
+
+.pricing-cta {
+    padding: 0 20px 20px;
+    text-align: center;
+}
+
+.pricing-button {
+    display: block;
+    width: 100%;
+    padding: 14px 10px;
+    border-radius: 8px;
+    background-color: #4299e1;
+    color: white;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 2px solid #4299e1;
+}
+
+.pricing-button:hover {
+    background-color: #3182ce;
+    transform: translateY(-2px);
+}
+
+/* FAQ Section */
+.faq-section {
+    background-color: #f8f9fa;
+}
+
+.faq-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    margin-bottom: 15px;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.faq-question {
+    padding: 20px;
+    background-color: white;
+    color: #000;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    font-size: 1.1rem;
+}
+
+.faq-question:after {
+    content: '+';
+    position: absolute;
+    right: 20px;
+    transition: all 0.3s ease;
+}
+
+.faq-question.active:after {
+    transform: rotate(45deg);
+}
+
+.faq-answer {
+    padding: 0 20px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    color: #555;
+    line-height: 1.6;
+}
+
+.faq-answer.active {
+    padding: 15px 20px;
+    max-height: 200px !important;
+}
+
+/* Footer */
+.home-footer {
+    background-color: #4a90e2;
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+}
+
+.footer-simple {
+    font-size: 0.85rem;
+    color: white;
+}
+
+.footer-simple a {
+    color: white;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.footer-simple a:hover {
+    color: #f0f0f0;
+    text-decoration: underline;
+}
+
+/* Responsive Styles */
+@media (max-width: 992px) {
+    .hero-content {
+        max-width: 100%;
+        margin-bottom: 40px;
+    }
+    
+    .hero-buttons {
+        justify-content: center;
+    }
+    
+    .steps-container {
+        flex-direction: column;
+    }
+    
+    .pricing-cards {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .pricing-card {
+        max-width: 100%;
+        width: 100%;
+        margin-bottom: 20px;
+        transform: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .hero-title {
+        font-size: 2.5rem;
+    }
+    
+    .hero-section {
+        padding: 40px 0;
+    }
+    
+    .hero-buttons {
+        flex-direction: column;
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    
+    .home-main section {
+        padding: 50px 0;
+    }
+    
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .pricing-card {
+        width: 100%;
+        max-width: 100%;
+        margin-bottom: 20px;
+        transform: none;
+        height: auto;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .pricing-features {
+        flex: 1;
+        overflow: visible;
+        padding: 15px;
+    }
+    
+    .pricing-cta {
+        position: relative;
+        bottom: auto;
+        width: 100%;
+        padding: 15px;
+    }
+}

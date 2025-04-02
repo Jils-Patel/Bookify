@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Dashboard - Bookify</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    </head>
+    <body>
+        <div class="app-layout">
+            <div class="side-navbar" id="sideNavbar">
+                <button id="navbarClose" class="navbar-close">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="/homepage" class="nav-link" title="Home">
+                    <i class="fas fa-home"></i>
+                </a>
+                <a href="/" class="nav-link" title="AI Assistant">
+                    <i class="fas fa-robot"></i>
+                </a>
+                <a href="/dashboard" class="nav-link active" title="Dashboard">
+                    <i class="fas fa-chart-pie"></i>
+                </a>
+                <a href="/quick_search" class="nav-link" title="Quick Search">
+                    <i class="fas fa-search"></i>
+                </a>
+                <a href="/tracker" class="nav-link" title="Book Tracker">
+                    <i class="fa-solid fa-list-check"></i>
+                </a>
+                <a href="/settings" class="nav-link" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </a>
+            </div>
+            
+            <div class="main-content">
+                <div class="top-navbar">
+                    <button id="menuToggle" class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <a href="/homepage" class="app-logo">Bookify</a>
+                    
+                    <div class="user-info" id="userProfile">
+                        <div class="user-avatar">
+                            {% if session['user']['avatar_url'] %}
+                                <img src="{{ session['user']['avatar_url'] }}" alt="{{ session['user']['name'] }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                            {% else %}
+                                {{ session['user']['name'][0]|upper if session['user']['name'] else 'U' }}
+                            {% endif %}
+                        </div>
+                        <div class="user-name">{{ session['user']['name'] }}</div>
+                        <i class="fas fa-chevron-down" style="margin-left: 10px; color: rgba(255, 255, 255, 0.7);"></i>
+                        
+                        <div class="user-dropdown" id="userDropdown">
+                            <a href="/logout" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Sign Out
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="content-area">
+                    <div class="dashboard-container">
+                        <div class="welcome-section">
+                            <h1 class="welcome-title">Welcome to Bookify, {{ session['user']['name'] }}!</h1>
+                            <p class="welcome-subtitle">Track your reading progress, discover insights about your collection, and get recommendations for your next read!</p>
+                        </div>
+                        
+                        <div class="stats-overview">
+                            <div class="stats-section">
+                                <h2>Reading Statistics</h2>
+                                <div class="book-stats">
+                                    <div class="stat-card">
+                                        <h3>Total Books</h3>
+                                        <div id="totalBooks" class="stat-value">0</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <h3>Currently Reading</h3>
+                                        <div id="readingCount" class="stat-value">0</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <h3>To Read</h3>
+                                        <div id="toReadCount" class="stat-value">0</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <h3>Finished</h3>
+                                        <div id="finishedCount" class="stat-value">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="stats-section">
+                                <h2>Progress Overview</h2>
+                                <div class="progress-stats">
+                                    <div class="stat-card">
+                                        <h3>Total Pages Read</h3>
+                                        <div id="totalPagesRead" class="stat-value">0</div>
+                                    </div>
+                                    <div class="stat-card">
+                                        <h3>Pages Left to Read</h3>
+                                        <div id="pagesLeft" class="stat-value">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="charts-container">
+                            <div class="chart-box">
+                                <h2>Reading Status</h2>
+                                <div class="chart-wrapper">
+                                    <canvas id="statusChart"></canvas>
+                                </div>
+                            </div>
+                            
+                            <div class="chart-box">
+                                <h2>Pages Distribution</h2>
+                                <div class="chart-wrapper">
+                                    <canvas id="progressChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="recent-activity">
+                            <h2>Recent Activity</h2>
+                            <div id="recentActivity" class="activity-list">
+                                <!-- Recent activity will be added here via JS -->
+                                <div class="empty-state">
+                                    <p>No recent activity to display. Start adding and updating books to see your activity here!</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Firebase -->
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+        
+        <!-- Chart.js -->
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        
+        <!-- App Scripts -->
+        <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+        
+        <script>
+            // Toggle user dropdown
+            document.getElementById('userProfile').addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.getElementById('userDropdown').classList.toggle('active');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function() {
+                document.getElementById('userDropdown').classList.remove('active');
+                // Also close the side navbar if clicked outside
+                if (!event.target.closest('#sideNavbar') && !event.target.closest('#menuToggle')) {
+                    document.getElementById('sideNavbar').classList.remove('active');
+                }
+            });
+            
+            // Mobile menu toggle
+            document.getElementById('menuToggle').addEventListener('click', function() {
+                document.getElementById('sideNavbar').classList.toggle('active');
+            });
+            
+            // Navbar close button
+            document.getElementById('navbarClose').addEventListener('click', function() {
+                document.getElementById('sideNavbar').classList.remove('active');
+            });
+            
+            // Close side navbar on escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    document.getElementById('sideNavbar').classList.remove('active');
+                }
+            });
+        </script>
+    </body>
+</html> 

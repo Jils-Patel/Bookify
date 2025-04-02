@@ -9,10 +9,19 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='css/tracker.css') }}">
     </head>
     <body>
-        <div class="container">
-            <nav class="navbar">
-                <a href="/" class="nav-link" title="Book Discovery">
-                    <i class="fas fa-book-open"></i>
+        <div class="app-layout">
+            <div class="side-navbar" id="sideNavbar">
+                <button id="navbarClose" class="navbar-close">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="/homepage" class="nav-link active" title="Home">
+                    <i class="fas fa-home"></i>
+                </a>
+                <a href="/dashboard" class="nav-link" title="Dashboard">
+                    <i class="fas fa-chart-pie"></i>
+                </a>
+                <a href="/" class="nav-link" title="AI Assistant">
+                    <i class="fas fa-robot"></i>
                 </a>
                 <a href="/quick_search" class="nav-link" title="Quick Search">
                     <i class="fas fa-search"></i>
@@ -20,43 +29,76 @@
                 <a href="/tracker" class="nav-link active" title="Book Tracker">
                     <i class="fa-solid fa-list-check"></i>
                 </a>
-            </nav>
+                <a href="/settings" class="nav-link" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </a>
+            </div>
             
-            <div class="tracker-container">                
-                <div class="book-stats">
-                    <div class="stat-card">
-                        <h3>Total Books</h3>
-                        <div id="totalBooks" class="stat-value">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Currently Reading</h3>
-                        <div id="readingCount" class="stat-value">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>To Read</h3>
-                        <div id="toReadCount" class="stat-value">0</div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Finished</h3>
-                        <div id="finishedCount" class="stat-value">0</div>
+            <div class="main-content">
+                <div class="top-navbar">
+                    <button id="menuToggle" class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <a href="/homepage" class="app-logo">Bookify</a>
+                    
+                    <div class="user-info" id="userProfile">
+                        <div class="user-avatar">
+                            {% if session['user']['avatar_url'] %}
+                                <img src="{{ session['user']['avatar_url'] }}" alt="{{ session['user']['name'] }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                            {% else %}
+                                {{ session['user']['name'][0]|upper if session['user']['name'] else 'U' }}
+                            {% endif %}
+                        </div>
+                        <div class="user-name">{{ session['user']['name'] }}</div>
+                        <i class="fas fa-chevron-down" style="margin-left: 10px; color: rgba(255, 255, 255, 0.7);"></i>
+                        
+                        <div class="user-dropdown" id="userDropdown">
+                            <a href="/logout" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Sign Out
+                            </a>
+                        </div>
                     </div>
                 </div>
                 
-                <div class="filter-section">
-                    <div class="filter-label">Filter by Status:</div>
-                    <select id="statusFilter" class="filter-select">
-                        <option value="all">All Books</option>
-                        <option value="to-read">To Read</option>
-                        <option value="reading">Currently Reading</option>
-                        <option value="finished">Finished</option>
-                    </select>
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search your collection...">
-                </div>
-                
-                <div id="booksList" class="books-list">
-                    <!-- Books will be added here via JS -->
-                    <div class="empty-state">
-                        <p>No books in your collection yet. Add books from the Book Discovery or Quick Search pages!</p>
+                <div class="content-area">
+                    <div class="tracker-container">                
+                        <div class="book-stats">
+                            <div class="stat-card">
+                                <h3>Total Books</h3>
+                                <div id="totalBooks" class="stat-value">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Currently Reading</h3>
+                                <div id="readingCount" class="stat-value">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <h3>To Read</h3>
+                                <div id="toReadCount" class="stat-value">0</div>
+                            </div>
+                            <div class="stat-card">
+                                <h3>Finished</h3>
+                                <div id="finishedCount" class="stat-value">0</div>
+                            </div>
+                        </div>
+                        
+                        <div class="filter-section">
+                            <div class="filter-label">Filter by Status:</div>
+                            <select id="statusFilter" class="filter-select">
+                                <option value="all">All Books</option>
+                                <option value="to-read">To Read</option>
+                                <option value="reading">Currently Reading</option>
+                                <option value="finished">Finished</option>
+                            </select>
+                            <input type="text" id="searchInput" class="search-input" placeholder="Search your collection...">
+                        </div>
+                        
+                        <div id="booksList" class="books-list">
+                            <!-- Books will be added here via JS -->
+                            <div class="empty-state">
+                                <p>No books in your collection yet. Add books from the Book Discovery or Quick Search pages!</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -113,6 +155,19 @@
                             <input type="url" id="coverUrl" class="form-input" placeholder="https://...">
                         </div>
                         
+                        <div class="form-group">
+                            <label for="buyLink">Buy on Amazon URL</label>
+                            <input type="url" id="buyLink" class="form-input" placeholder="https://www.amazon.com/...">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="sourceUrl">Read Online URL</label>
+                            <input type="url" id="sourceUrl" class="form-input" placeholder="https://...">
+                        </div>
+                        
+                        <!-- Hidden field for dateAdded that won't be shown in the edit form -->
+                        <input type="hidden" id="dateAdded">
+                        
                         <div class="form-group full-width">
                             <label for="bookDescription">Description</label>
                             <textarea id="bookDescription" class="form-input" rows="3"></textarea>
@@ -155,6 +210,50 @@
             <i class="fas fa-plus"></i>
         </button>
         
+        <!-- Firebase SDK -->
+        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+        <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
+        
         <script src="{{ url_for('static', filename='js/tracker.js') }}"></script>
+        <script>
+            // Toggle user dropdown
+            document.getElementById('userProfile').addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.getElementById('userDropdown').classList.toggle('active');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function() {
+                document.getElementById('userDropdown').classList.remove('active');
+                // Also close the side navbar if clicked outside
+                if (!event.target.closest('#sideNavbar') && !event.target.closest('#menuToggle')) {
+                    document.getElementById('sideNavbar').classList.remove('active');
+                }
+            });
+            
+            // Mobile menu toggle
+            document.getElementById('menuToggle').addEventListener('click', function() {
+                document.getElementById('sideNavbar').classList.toggle('active');
+            });
+            
+            // Navbar close button
+            document.getElementById('navbarClose').addEventListener('click', function() {
+                document.getElementById('sideNavbar').classList.remove('active');
+            });
+            
+            // Close side navbar on escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    document.getElementById('sideNavbar').classList.remove('active');
+                    
+                    // Close modals if open
+                    if (typeof closeModal === 'function') closeModal();
+                    if (typeof closeFormModal === 'function') closeFormModal();
+                    if (typeof closeDeleteConfirmModal === 'function') closeDeleteConfirmModal();
+                }
+            });
+        </script>
     </body>
 </html> 

@@ -1,17 +1,28 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Book Discovery Assistant</title>
+        <title>Bookify - Your AI Book Companion</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
     </head>
     <body>
-        <div class="container">
-            <nav class="navbar">
-                <a href="/" class="nav-link active" title="Book Discovery">
-                    <i class="fas fa-book-open"></i>
+        {% if user %}
+        <div class="app-layout">
+            <div class="side-navbar" id="sideNavbar">
+                <button id="navbarClose" class="navbar-close">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <a href="/homepage" class="nav-link" title="Home">
+                    <i class="fas fa-home"></i>
+                </a>
+                <a href="/dashboard" class="nav-link" title="Dashboard">
+                    <i class="fas fa-chart-pie"></i>
+                </a>
+                <a href="/" class="nav-link active" title="AI Assistant">
+                    <i class="fas fa-robot"></i>
                 </a>
                 <a href="/quick_search" class="nav-link" title="Quick Search">
                     <i class="fas fa-search"></i>
@@ -19,20 +30,52 @@
                 <a href="/tracker" class="nav-link" title="Book Tracker">
                     <i class="fa-solid fa-list-check"></i>
                 </a>
-            </nav>
-
+                <a href="/settings" class="nav-link" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </a>
+            </div>
             
-            <div class="chat-container">
-                <div class="chat-history">
-                    <!-- Chat messages will appear here -->
+            <div class="main-content">
+                <div class="top-navbar">
+                    <button id="menuToggle" class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <a href="/homepage" class="app-logo">Bookify</a>
+                    
+                    <div class="user-info" id="userProfile">
+                        <div class="user-avatar">
+                            {% if user['avatar_url'] %}
+                                <img src="{{ user['avatar_url'] }}" alt="{{ user['name'] }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                            {% else %}
+                                {{ user['name'][0]|upper if user['name'] else 'U' }}
+                            {% endif %}
+                        </div>
+                        <div class="user-name">{{ user['name'] }}</div>
+                        <i class="fas fa-chevron-down" style="margin-left: 10px; color: rgba(255, 255, 255, 0.7);"></i>
+                        
+                        <div class="user-dropdown" id="userDropdown">
+                            <a href="/logout" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Sign Out
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="chat-input-container">
-                    <div class="input-area">
-                        <textarea id="userInput" placeholder="Ask me anything about books or tell me what kind of books you're interested in..."></textarea>
-                        <button id="findBooksBtn">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
+                <div class="content-area">
+                    <div class="chat-container">
+                        <div class="chat-history">
+                            <!-- Chat messages will appear here -->
+                        </div>
+                        
+                        <div class="chat-input-container">
+                            <div class="input-area">
+                                <textarea id="userInput" placeholder="Ask me anything about books or tell me what kind of books you're interested in..."></textarea>
+                                <button id="findBooksBtn">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -47,5 +90,292 @@
         </div>
 
         <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+        <script>
+            // Toggle user dropdown
+            document.getElementById('userProfile').addEventListener('click', function(e) {
+                e.stopPropagation();
+                document.getElementById('userDropdown').classList.toggle('active');
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function() {
+                document.getElementById('userDropdown').classList.remove('active');
+            });
+            
+            // Mobile menu toggle
+            document.getElementById('menuToggle').addEventListener('click', function() {
+                document.getElementById('sideNavbar').classList.toggle('active');
+            });
+            
+            // Navbar close button
+            document.getElementById('navbarClose').addEventListener('click', function() {
+                document.getElementById('sideNavbar').classList.remove('active');
+            });
+            
+            // Add closeModal function
+            function closeModal() {
+                const modal = document.getElementById('bookModal');
+                modal.style.display = 'none';
+                document.body.style.overflow = 'auto';
+            }
+
+            // Close modal when clicking outside
+            window.onclick = function(event) {
+                const modal = document.getElementById('bookModal');
+                if (event.target == modal) {
+                    closeModal();
+                }
+                // Also close the side navbar if clicked outside
+                if (!event.target.closest('#sideNavbar') && !event.target.closest('#menuToggle')) {
+                    document.getElementById('sideNavbar').classList.remove('active');
+                }
+            }
+
+            // Close modal on escape key
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeModal();
+                    document.getElementById('sideNavbar').classList.remove('active');
+                }
+            });
+        </script>
+        {% else %}
+        <!-- Home Page for Non-Authenticated Users -->
+        <header class="home-header">
+            <nav class="home-navbar">
+                <div class="container">
+                    <a href="/" class="app-logo">Bookify</a>
+                    <div class="nav-right">
+                        <a href="/login" class="signin-button">
+                            Sign In
+                        </a>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        
+        <main class="home-main">
+            <!-- Hero Section integrated with the main content -->
+            <section id="hero">
+                <div class="hero-content">
+                <h1 class="hero-title">Welcome to Bookify</h1>
+                <p class="hero-subtitle">Your personal AI-powered reading assistant. Discover new books, track your reading progress, and explore research papers all in one place.</p>
+                
+                    <div class="hero-buttons">
+                        <a href="/login" class="primary-button">
+                            Get Started
+                        </a>
+                        <a href="#features" class="secondary-button">
+                            Learn More
+                        </a>
+                    </div>
+                    </div>
+            </section>
+
+            <!-- How It Works Section -->
+            <section id="how-it-works" class="how-it-works-section">
+                    <h2 class="section-title">How Bookify Works</h2>
+                    <div class="steps-container">
+                        <div class="step">
+                            <div class="step-icon"><i class="fas fa-search"></i></div>
+                            <h3>Discover</h3>
+                            <p>Search for books or ask our AI for recommendations that match your interests and preferences.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon"><i class="fas fa-book-open"></i></div>
+                            <h3>Explore</h3>
+                            <p>Get detailed information about books, authors, and access options from multiple sources.</p>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon"><i class="fas fa-list-check"></i></div>
+                            <h3>Track</h3>
+                            <p>Keep track of your reading progress, set goals, and organize your personal library.</p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Demo Section -->
+            <section id="demo" class="demo-section">
+                    <h2 class="section-title">See Bookify in Action</h2>
+                    <div class="video-container">
+                        <!-- Replace with your actual video embed code -->
+                        <iframe width="100%" height="100%" src="https://www.youtube.com/embed/dQw4w9WgXcQ" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </section>
+            
+            <!-- Features Section -->
+            <section id="features" class="features-section">
+                    <h2 class="section-title">Features</h2>
+                    <div class="features-grid">
+                    <div class="feature-card-img">
+                        <div class="feature-img">
+                            <img src="{{ url_for('static', filename='images/ai-assistant.jpg') }}" alt="AI Assistant">
+                        </div>
+                            <h3 class="feature-title">AI Assistant</h3>
+                        <p class="feature-desc">Get personalized book recommendations based on your preferences and reading history. Our AI understands your tastes and suggests books you'll love.</p>
+                        </div>
+                    <div class="feature-card-img">
+                        <div class="feature-img">
+                            <img src="{{ url_for('static', filename='images/quick-search.jpg') }}" alt="Quick Search">
+                        </div>
+                            <h3 class="feature-title">Quick Search</h3>
+                        <p class="feature-desc">Find books, authors, and research papers instantly with our powerful search tools that connect you to multiple sources and databases.</p>
+                        </div>
+                    <div class="feature-card-img">
+                        <div class="feature-img">
+                            <img src="{{ url_for('static', filename='images/book-tracker.jpg') }}" alt="Book Tracker">
+                        </div>
+                            <h3 class="feature-title">Book Tracker</h3>
+                        <p class="feature-desc">Organize your personal library, track reading progress, set goals, and keep a detailed record of all your reading activities in one place.</p>
+                        </div>
+                    <div class="feature-card-img">
+                        <div class="feature-img">
+                            <img src="{{ url_for('static', filename='images/digital-library.jpg') }}" alt="Digital Library">
+                        </div>
+                        <h3 class="feature-title">Digital Library</h3>
+                        <p class="feature-desc">Access a vast collection of e-books, audio books, and digital resources from various platforms and libraries all through one interface.</p>
+                    </div>
+                    <div class="feature-card-img">
+                        <div class="feature-img">
+                            <img src="{{ url_for('static', filename='images/research-papers.jpg') }}" alt="Research Papers">
+                        </div>
+                            <h3 class="feature-title">Research Papers</h3>
+                        <p class="feature-desc">Discover the latest academic papers and research publications in your field of interest with our specialized research search tools.</p>
+                        </div>
+                    <div class="feature-card-img">
+                        <div class="feature-img">
+                            <img src="{{ url_for('static', filename='images/reading-stats.jpg') }}" alt="Reading Statistics">
+                        </div>
+                            <h3 class="feature-title">Reading Stats</h3>
+                        <p class="feature-desc">Visualize your reading habits with beautiful charts and analytics that help you understand your preferences and reading patterns.</p>
+                        </div>
+                    </div>
+            </section>
+            
+            <!-- Pricing Section -->
+            <section id="pricing" class="pricing-section">
+                <h2 class="section-title">Choose Your Plan</h2>
+                <p class="pricing-subtitle">Select the perfect plan for your reading journey</p>
+                
+                <div class="pricing-cards">
+                    <!-- Free Plan -->
+                    <div class="pricing-card">
+                        <div class="pricing-header">
+                            <h3 class="plan-name">Free Plan</h3>
+                            <div class="plan-price">
+                                <span class="price">$0</span>
+                                <span class="period">/month</span>
+                </div>
+                            <p class="plan-description">For Readers</p>
+                        </div>
+                        <div class="pricing-features">
+                            <ul>
+                                <li><i class="fas fa-check-circle"></i> <b>3</b>&nbsp;AI Queries Daily</li>
+                                <li><i class="fas fa-check-circle"></i> <b>3</b>&nbsp;Quick Searches Daily</li>
+                                <li><i class="fas fa-check-circle"></i> Top&nbsp;<b>5</b>&nbsp;Results for Quick Search</li>
+                                <li><i class="fas fa-check-circle"></i> Track up to&nbsp;<b>5</b>&nbsp;Books</li>
+                                <li><i class="fas fa-check-circle"></i> <b>Limited</b>&nbsp;Archive and Research</li>
+                            </ul>
+                        </div>
+                        <div class="pricing-cta">
+                            <a href="/login" class="pricing-button">Get Started</a>
+                        </div>
+                    </div>
+                    
+                    <!-- Pro Plan -->
+                    <div class="pricing-card">
+                        <div class="pricing-header">
+                            <h3 class="plan-name">Pro Plan</h3>
+                            <div class="plan-price">
+                                <span class="price">$1.99</span>
+                                <span class="period">/month</span>
+                            </div>
+                            <p class="plan-description">For Readers, Students, and Researchers</p>
+                        </div>
+                        <div class="pricing-features">
+                            <ul>
+                                <li><i class="fas fa-check-circle"></i> <b>Unlimited</b>&nbsp;AI Queries</li>
+                                <li><i class="fas fa-check-circle"></i> <b>Unlimited</b>&nbsp;Quick Search</li>
+                                <li><i class="fas fa-check-circle"></i> Up to&nbsp;<b>50</b>&nbsp;Results for Quick Search</li>
+                                <li><i class="fas fa-check-circle"></i> Track&nbsp;<b>Unlimited</b>&nbsp;Books</li>
+                                <li><i class="fas fa-check-circle"></i> <b>Full</b>&nbsp;Archive and Research</li>
+                            </ul>
+                        </div>
+                        <div class="pricing-cta">
+                            <a href="/login" class="pricing-button">Get Started</a>
+                        </div>
+                    </div>
+                </div>
+                
+            </section>
+            
+            <!-- FAQ Section -->
+            <section id="faq" class="faq-section">
+                    
+                    <div class="faq-container">
+                        <h2 class="section-title">Frequently Asked Questions</h2>
+                        <div class="faq-item">
+                            <div class="faq-question">How does Bookify work?</div>
+                            <div class="faq-answer">Bookify is an AI-powered reading assistant that recommends books and research papers based on your interests. Simply search or chat with the AI, and it will suggest relevant titles. You can add books to your collection, track your reading progress, take notes, and access books through sources like Internet Archive, Open Library, or Amazon for purchase.</div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question">Is Bookify free to use?</div>
+                            <div class="faq-answer">Bookify offers a free plan with basic features as well as a Pro plan with enhanced capabilities for more serious readers, students, and researchers. All plans include access to our core features, with the Pro plan offering more extensive searching, tracking, and research capabilities.</div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question">Can I download books directly from Bookify?</div>
+                            <div class="faq-answer">Bookify provides links to legitimate sources where you can purchase or borrow books. These include Open Library, Internet Archive, and Amazon. We don't host book files directly but connect you to the best available options, although you can download select research papers directly from Bookify if available.</div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question">How does the AI assistant work?</div>
+                            <div class="faq-answer">The AI assistant uses natural language processing to analyze inputs related to user preferences, mood, titles, authors, genre, etc. It surfs through our vast database of books, research papers, and archives from multiple sources, including Open Library, Internet Archive, Semantic Scholar, etc., to recommend relevant titles related to your preferences. Users are free to interact with it through chat for dynamic recommendations or perform direct searches, also available in our quick search feature.</div>
+                        </div>
+                        <div class="faq-item">
+                            <div class="faq-question">How do I track my reading progress?</div>
+                            <div class="faq-answer">Once you have added books or papers to your collection, you can update your reading status, mark pages read, take notes, etc. Your books will always be available in your collection once added, and are free to be modified or deleted at your own will. If you don't see a specific book being recommended, you are free to add your own custom titles in the book tracker feature.</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        
+        <footer class="home-footer">
+            <p class="footer-simple">&copy; 2025 Bookify. All rights reserved - <a href="/terms">Terms & Conditions</a> - <a href="/privacy">Privacy Policy</a></p>
+        </footer>
+
+        <script>
+            // FAQ toggle
+            const faqQuestions = document.querySelectorAll('.faq-question');
+            faqQuestions.forEach(question => {
+                question.addEventListener('click', () => {
+                    const answer = question.nextElementSibling;
+                    question.classList.toggle('active');
+                    answer.classList.toggle('active');
+                    if (answer.style.maxHeight) {
+                        answer.style.maxHeight = null;
+                    } else {
+                        answer.style.maxHeight = answer.scrollHeight + 'px';
+                    }
+                });
+            });
+            
+            // Smooth scrolling for "Learn More" button
+            document.querySelector('a[href="#features"]').addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const featuresSection = document.querySelector('#features');
+                featuresSection.scrollIntoView({ 
+                    behavior: 'smooth'
+                });
+            });
+        </script>
+        {% endif %}
+
+        <!-- Firebase SDK -->
+        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+        <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
+        
+        <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     </body>
 </html> 
