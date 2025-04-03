@@ -115,9 +115,24 @@
                             </div>
                             
                             <div class="chart-box">
-                                <h2>Pages Distribution</h2>
+                                <h2>Distribution of Pages</h2>
                                 <div class="chart-wrapper">
                                     <canvas id="progressChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="recommendations-section">
+                            <div class="section-header">
+                                <h2>Recommended For You</h2>
+                                <button id="refreshRecommendations" class="refresh-btn" title="Refresh Recommendations">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <div id="recommendationsContainer" class="recommendations-container">
+                                <div class="loading-recommendations">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>Finding personalized book recommendations based on your preferences...</span>
                                 </div>
                             </div>
                         </div>

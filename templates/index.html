@@ -64,16 +64,66 @@
                 
                 <div class="content-area">
                     <div class="chat-container">
-                        <div class="chat-history">
-                            <!-- Chat messages will appear here -->
+                        <div class="chat-sidebar">
+                            <div class="sidebar-header">
+                                <h3>Your Conversations</h3>
+                                <div class="sidebar-buttons">
+                                    <button id="newChatBtn" title="Start a new conversation">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button id="closeSidebarBtn" class="mobile-only" title="Close sidebar">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="chat-list-container">
+                                <div id="chatsList" class="chats-list">
+                                    <!-- Chat conversations will be listed here -->
+                                    <div class="chat-list-empty">
+                                        <p>No conversations yet</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
-                        <div class="chat-input-container">
-                            <div class="input-area">
-                                <textarea id="userInput" placeholder="Ask me anything about books or tell me what kind of books you're interested in..."></textarea>
-                                <button id="findBooksBtn">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
+                        <div class="chat-main">
+                            <div class="chat-main-header">
+                                <div class="header-left">
+                                    <button id="mobileSidebarToggle" class="sidebar-toggle mobile-only" title="Show conversations">
+                                        <i class="fas fa-bars"></i>
+                                    </button>
+                                    <!-- Desktop sidebar toggle button -->
+                                    <button id="toggleChatSidebar" class="sidebar-toggle desktop-only" title="Toggle sidebar">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <h2 id="currentChatTitle">New Conversation</h2>
+                                </div>
+                                <div class="chat-main-actions">
+                                    <button id="renameChatBtn" title="Rename this conversation">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button id="deleteChatBtn" title="Delete this conversation">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="chat-history">
+                                <!-- Chat messages will appear here -->
+                            </div>
+                            
+                            <div class="chat-input-container">
+                                <div class="input-area">
+                                    <textarea id="userInput" placeholder="Ask me anything about books or tell me what kind of books you're interested in..."></textarea>
+                                    <button id="findBooksBtn">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                                <!--<div class="chat-actions">
+                                    <button id="clearChatBtn" onclick="clearCurrentChat()" title="Clear current chat">
+                                        <i class="fas fa-trash-alt"></i> Clear Chat
+                                    </button>
+                                </div>-->
                             </div>
                         </div>
                     </div>
@@ -138,6 +188,81 @@
                     document.getElementById('sideNavbar').classList.remove('active');
                 }
             });
+
+            document.addEventListener('DOMContentLoaded', function() {
+            const desktopToggle = document.getElementById('toggleChatSidebar');
+            const mobileToggle = document.getElementById('mobileSidebarToggle');
+            const chatContainer = document.querySelector('.chat-container');
+            const overlay = document.querySelector('.chat-sidebar-overlay');
+            
+            // Function to check if we're on mobile
+            function isMobile() {
+                return window.innerWidth <= 768;
+            }
+            
+            // Desktop toggle behavior
+            if (desktopToggle && chatContainer) {
+                desktopToggle.addEventListener('click', function() {
+                    chatContainer.classList.toggle('sidebar-collapsed');
+                    
+                    // Save preference to localStorage (for desktop only)
+                    if (!isMobile()) {
+                        const isCollapsed = chatContainer.classList.contains('sidebar-collapsed');
+                        localStorage.setItem('chatSidebarCollapsed', isCollapsed);
+                    }
+                });
+                
+                // Restore user preference for desktop
+                if (!isMobile()) {
+                    const savedPreference = localStorage.getItem('chatSidebarCollapsed');
+                    if (savedPreference === 'true') {
+                        chatContainer.classList.add('sidebar-collapsed');
+                    }
+                }
+            }
+            
+            // Mobile toggle behavior
+            if (mobileToggle && chatContainer) {
+                mobileToggle.addEventListener('click', function() {
+                    chatContainer.classList.add('sidebar-visible');
+                });
+            }
+            
+            // Close sidebar when clicking on overlay
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    chatContainer.classList.remove('sidebar-visible');
+                });
+            }
+
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    if (closeSidebarBtn) {
+        closeSidebarBtn.addEventListener('click', function() {
+            const chatContainer = document.querySelector('.chat-container');
+            chatContainer.classList.remove('sidebar-visible');
+        });
+    }
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (isMobile()) {
+                    chatContainer.classList.remove('sidebar-collapsed');
+                    // On mobile, start with sidebar hidden unless explicitly shown
+                    if (!chatContainer.classList.contains('sidebar-visible')) {
+                        chatContainer.classList.remove('sidebar-visible');
+                    }
+                } else {
+                    chatContainer.classList.remove('sidebar-visible');
+                    // On desktop, use the saved preference
+                    const savedPreference = localStorage.getItem('chatSidebarCollapsed');
+                    if (savedPreference === 'true') {
+                        chatContainer.classList.add('sidebar-collapsed');
+                    } else {
+                        chatContainer.classList.remove('sidebar-collapsed');
+                    }
+                }
+            });
+        });
         </script>
         {% else %}
         <!-- Home Page for Non-Authenticated Users -->

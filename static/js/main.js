@@ -1,7 +1,30 @@
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize UI elements
     const findBooksBtn = document.getElementById('findBooksBtn');
     const userInput = document.getElementById('userInput');
+    const newChatBtn = document.getElementById('newChatBtn');
+    const renameChatBtn = document.getElementById('renameChatBtn');
+    const deleteChatBtn = document.getElementById('deleteChatBtn');
+    const chatsList = document.getElementById('chatsList');
+    const currentChatTitle = document.getElementById('currentChatTitle');
     
+    // Current chat state
+    let currentChatId = null;
+    let chats = [];
+    let chatHistory = [];
+    
+    // Initialize Firebase auth state
+    firebase.auth().onAuthStateChanged(function(user) {
+        if (user) {
+            console.log('User is authenticated, loading chats...');
+            loadUserChats();
+        } else {
+            console.error('User is not authenticated');
+            showWelcomeMessage();
+        }
+    });
+    
+    // Set up event listeners
     findBooksBtn.addEventListener('click', handleUserInput);
     
     userInput.addEventListener('keypress', function(e) {
@@ -11,12 +34,294 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    newChatBtn.addEventListener('click', createNewChat);
+    renameChatBtn.addEventListener('click', renameCurrentChat);
+    deleteChatBtn.addEventListener('click', promptDeleteCurrentChat);
+    
+    // Show welcome message
+    function showWelcomeMessage() {
     addMessageToHistory('Hi! I\'m your AI assistant. I can help you find book recommendations, research papers (both recent and archival), or answer questions about books and academic topics. How can I help you today?');
-});
-
-let chatHistory = [];
-
-function addMessageToHistory(message, isUser = false, items = null, responseType = null) {
+    }
+    
+    // Load user's chats from Firebase
+    function loadUserChats() {
+        if (!firebase.auth().currentUser) return;
+        
+        const userEmail = firebase.auth().currentUser.email;
+        
+        db.collection('Chats')
+            .where('user_id', '==', userEmail)
+            .orderBy('updated_at', 'desc')
+            .get()
+            .then((querySnapshot) => {
+                chats = [];
+                chatsList.innerHTML = '';
+                
+                if (querySnapshot.empty) {
+                    chatsList.innerHTML = `
+                        <div class="chat-list-empty">
+                            <p>No conversations yet</p>
+                        </div>
+                    `;
+                    createNewChat(); // Create a default chat if none exists
+                    return;
+                }
+                
+                querySnapshot.forEach((doc) => {
+                    const chat = {
+                        id: doc.id,
+                        ...doc.data()
+                    };
+                    chats.push(chat);
+                    renderChatItem(chat);
+                });
+                
+                // Select the first chat
+                if (chats.length > 0) {
+                    selectChat(chats[0].id);
+                }
+            })
+            .catch((error) => {
+                console.error('Error loading chats:', error);
+                showErrorMessage('Failed to load your conversations. Please try again later.');
+            });
+    }
+    
+    // Create a new chat
+    function createNewChat() {
+        if (!firebase.auth().currentUser) {
+            showErrorMessage('Please sign in to create a new chat');
+            return;
+        }
+        
+        const userEmail = firebase.auth().currentUser.email;
+        const newChat = {
+            title: 'New Conversation',
+            user_id: userEmail,
+            created_at: firebase.firestore.Timestamp.now(),
+            updated_at: firebase.firestore.Timestamp.now(),
+            messages: []
+        };
+        
+        db.collection('Chats')
+            .add(newChat)
+            .then((docRef) => {
+                const chat = {
+                    id: docRef.id,
+                    ...newChat
+                };
+                chats.unshift(chat);
+                renderChatItem(chat, true);
+                selectChat(docRef.id);
+            })
+            .catch((error) => {
+                console.error('Error creating new chat:', error);
+                showErrorMessage('Failed to create a new conversation');
+            });
+    }
+    
+    // Render a chat item in the sidebar
+    function renderChatItem(chat, prepend = false) {
+        const chatItem = document.createElement('div');
+        chatItem.className = 'chat-item';
+        chatItem.dataset.id = chat.id;
+        
+        const preview = chat.messages && chat.messages.length > 0 
+            ? chat.messages[chat.messages.length - 1].message.substring(0, 40) + (chat.messages[chat.messages.length - 1].message.length > 40 ? '...' : '')
+            : 'No messages yet';
+        
+        chatItem.innerHTML = `
+            <div class="chat-item-content" onclick="selectChat('${chat.id}')">
+                <div class="chat-item-title">${chat.title}</div>
+                <div class="chat-item-preview">${preview}</div>
+            </div>
+            <div class="chat-item-actions">
+                <button class="chat-item-delete" onclick="event.stopPropagation(); deleteChatById('${chat.id}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        `;
+        
+        // Check if this is the active chat
+        if (chat.id === currentChatId) {
+            chatItem.classList.add('active');
+        }
+        
+        // Removes the "No conversations yet" message if it exists
+        const emptyChatList = document.querySelector('.chat-list-empty');
+        if (emptyChatList) {
+            emptyChatList.remove();
+        }
+        
+        if (prepend && chatsList.firstChild) {
+            chatsList.insertBefore(chatItem, chatsList.firstChild);
+        } else {
+            chatsList.appendChild(chatItem);
+        }
+    }
+    
+    // Select a chat and load its messages
+    function selectChat(chatId) {
+        // Don't reload if it's already the current chat
+        if (chatId === currentChatId) return;
+        
+        // Remove active class from previous chat
+        const activeChat = document.querySelector('.chat-item.active');
+        if (activeChat) {
+            activeChat.classList.remove('active');
+        }
+        
+        // Add active class to selected chat
+        const selectedChat = document.querySelector(`.chat-item[data-id="${chatId}"]`);
+        if (selectedChat) {
+            selectedChat.classList.add('active');
+        }
+        
+        // Update current chat ID
+        currentChatId = chatId;
+        
+        // Find the chat in our array
+        const chat = chats.find(c => c.id === chatId);
+        if (!chat) return;
+        
+        // Update the chat title
+        currentChatTitle.textContent = chat.title;
+        
+        // Clear the current chat history
+        chatHistory = [];
+        const chatHistoryDiv = document.querySelector('.chat-history');
+        chatHistoryDiv.innerHTML = '';
+        
+        // Load messages from the selected chat
+        if (chat.messages && chat.messages.length > 0) {
+            chat.messages.forEach(msg => {
+                addMessageToHistory(msg.message, msg.isUser, msg.items, msg.responseType, false);
+            });
+        } else {
+            // Show welcome message in an empty chat
+            showWelcomeMessage();
+        }
+    }
+    
+    // Rename the current chat
+    function renameCurrentChat() {
+        if (!currentChatId) return;
+        
+        const chat = chats.find(c => c.id === currentChatId);
+        if (!chat) return;
+        
+        const newTitle = prompt('Enter a new name for this conversation:', chat.title);
+        if (!newTitle || newTitle === chat.title) return;
+        
+        db.collection('Chats').doc(currentChatId)
+            .update({
+                title: newTitle,
+                updated_at: firebase.firestore.Timestamp.now()
+            })
+            .then(() => {
+                // Update local data
+                chat.title = newTitle;
+                currentChatTitle.textContent = newTitle;
+                
+                // Update the sidebar item
+                const chatItem = document.querySelector(`.chat-item[data-id="${currentChatId}"] .chat-item-title`);
+                if (chatItem) {
+                    chatItem.textContent = newTitle;
+                }
+            })
+            .catch((error) => {
+                console.error('Error renaming chat:', error);
+                showErrorMessage('Failed to rename conversation');
+            });
+    }
+    
+    // Prompt to delete the current chat
+    function promptDeleteCurrentChat() {
+        if (!currentChatId) return;
+        
+        if (confirm('Are you sure you want to delete this conversation? This action cannot be undone.')) {
+            deleteChatById(currentChatId);
+        }
+    }
+    
+    // Delete a chat by ID
+    function deleteChatById(chatId) {
+        db.collection('Chats').doc(chatId)
+            .delete()
+            .then(() => {
+                // Remove from the UI
+                const chatItem = document.querySelector(`.chat-item[data-id="${chatId}"]`);
+                if (chatItem) {
+                    chatItem.remove();
+                }
+                
+                // Remove from our array
+                chats = chats.filter(c => c.id !== chatId);
+                
+                // If we deleted the current chat, select another one or create a new one
+                if (chatId === currentChatId) {
+                    if (chats.length > 0) {
+                        selectChat(chats[0].id);
+                    } else {
+                        createNewChat();
+                    }
+                }
+                
+                // If no chats left, show empty state
+                if (chats.length === 0) {
+                    chatsList.innerHTML = `
+                        <div class="chat-list-empty">
+                            <p>No conversations yet</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch((error) => {
+                console.error('Error deleting chat:', error);
+                showErrorMessage('Failed to delete conversation');
+            });
+    }
+    
+    // Clear the current chat
+    function clearCurrentChat() {
+        if (!currentChatId) return;
+        
+        if (confirm('Are you sure you want to clear all messages in this conversation? This action cannot be undone.')) {
+            db.collection('Chats').doc(currentChatId)
+                .update({
+                    messages: [],
+                    updated_at: firebase.firestore.Timestamp.now()
+                })
+                .then(() => {
+                    // Clear the chat history UI
+                    chatHistory = [];
+                    const chatHistoryDiv = document.querySelector('.chat-history');
+                    chatHistoryDiv.innerHTML = '';
+                    
+                    // Update the chat item preview
+                    const chatItem = document.querySelector(`.chat-item[data-id="${currentChatId}"] .chat-item-preview`);
+                    if (chatItem) {
+                        chatItem.textContent = 'No messages yet';
+                    }
+                    
+                    // Show welcome message
+                    showWelcomeMessage();
+                    
+                    // Update local chat data
+                    const chat = chats.find(c => c.id === currentChatId);
+                    if (chat) {
+                        chat.messages = [];
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error clearing chat:', error);
+                    showErrorMessage('Failed to clear conversation');
+                });
+        }
+    }
+    
+    // Add a message to the chat history
+    function addMessageToHistory(message, isUser = false, items = null, responseType = null, shouldSave = true) {
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
     
@@ -68,19 +373,104 @@ function addMessageToHistory(message, isUser = false, items = null, responseType
     chatHistoryDiv.appendChild(messageDiv);
     chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
     
-    chatHistory.push({ message, isUser, items, responseType });
-}
-
-function handleUserInput() {
-    const userInput = document.getElementById('userInput').value.trim();
+        // Add to history array
+        const messageObj = { message, isUser, items, responseType, timestamp: new Date().toISOString() };
+        chatHistory.push(messageObj);
+        
+        // Save to Firebase if needed
+        if (shouldSave && currentChatId) {
+            saveMessageToFirebase(messageObj);
+        }
+        
+        // Update the chat preview in the sidebar
+        if (shouldSave && currentChatId) {
+            const chatItem = document.querySelector(`.chat-item[data-id="${currentChatId}"] .chat-item-preview`);
+            if (chatItem) {
+                chatItem.textContent = message.substring(0, 40) + (message.length > 40 ? '...' : '');
+            }
+        }
+    }
     
-    if (!userInput) {
+    // Save a message to Firebase
+    function saveMessageToFirebase(messageObj) {
+        if (!currentChatId) return;
+        
+        db.collection('Chats').doc(currentChatId)
+            .update({
+                messages: firebase.firestore.FieldValue.arrayUnion(messageObj),
+                updated_at: firebase.firestore.Timestamp.now()
+            })
+            .catch((error) => {
+                console.error('Error saving message:', error);
+            });
+    }
+    
+    // Auto-generate a title for the chat based on the first user message
+    function generateChatTitle(userMessage) {
+        if (!currentChatId) return;
+        
+        const chat = chats.find(c => c.id === currentChatId);
+        if (!chat || chat.title !== 'New Conversation') return;
+        
+        // Only auto-generate for the first message in a new chat
+        if (chat.messages && chat.messages.length > 0) return;
+        
+        // Generate a short title based on the user's first message
+        let title = userMessage.substring(0, 30);
+        if (userMessage.length > 30) {
+            title += '...';
+        }
+        
+        db.collection('Chats').doc(currentChatId)
+            .update({
+                title: title,
+                updated_at: firebase.firestore.Timestamp.now()
+            })
+            .then(() => {
+                // Update local data
+                chat.title = title;
+                currentChatTitle.textContent = title;
+                
+                // Update the sidebar item
+                const chatItem = document.querySelector(`.chat-item[data-id="${currentChatId}"] .chat-item-title`);
+                if (chatItem) {
+                    chatItem.textContent = title;
+                }
+            })
+            .catch((error) => {
+                console.error('Error updating chat title:', error);
+            });
+    }
+    
+    // Handle user input and send to API
+function handleUserInput() {
+        const userInputValue = userInput.value.trim();
+    
+        if (!userInputValue) {
         alert('Please enter your question or tell me what kind of books or research you\'re interested in.');
         return;
     }
     
-    addMessageToHistory(userInput, true);
-    document.getElementById('userInput').value = '';
+        // Make sure we have a current chat
+        if (!currentChatId) {
+            createNewChat().then(() => {
+                processUserInput(userInputValue);
+            });
+        } else {
+            processUserInput(userInputValue);
+        }
+    }
+    
+    // Process the user input and get a response
+    function processUserInput(userInputValue) {
+        // Try to auto-generate a title for new conversations
+        generateChatTitle(userInputValue);
+        
+        // Add the user message to the chat
+        addMessageToHistory(userInputValue, true);
+        userInput.value = '';
+        
+        // Show typing indicator
     const loadingDiv = document.createElement('div');
     loadingDiv.className = 'message assistant-message';
     const typingContainer = document.createElement('div');
@@ -89,16 +479,20 @@ function handleUserInput() {
     typingSpan.className = 'typing-dots';
     typingContainer.appendChild(typingSpan);
     loadingDiv.appendChild(typingContainer);
-
     document.querySelector('.chat-history').appendChild(loadingDiv);
     
+        // Get last few messages for context
+        const conversationContext = getConversationContext();
+        
+        // Send to API
     fetch('/recommend', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            user_input: userInput
+                user_input: userInputValue,
+                conversation_context: conversationContext
         })
     })
     .then(response => response.json())
@@ -118,6 +512,43 @@ function handleUserInput() {
     });
 }
 
+    // Get recent conversation context for sending to the API
+    function getConversationContext() {
+        // Get last 10 messages maximum (or fewer if there aren't that many)
+        const contextLength = 10;
+        const startIdx = Math.max(0, chatHistory.length - contextLength);
+        const recentMessages = chatHistory.slice(startIdx);
+        
+        // Format for API
+        return recentMessages.map(item => ({
+            role: item.isUser ? 'user' : 'assistant',
+            content: item.message
+        }));
+    }
+    
+    // Show error message
+    function showErrorMessage(message) {
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'error-message';
+        errorMsg.innerHTML = `
+            <i class="fas fa-exclamation-circle"></i>
+            ${message}
+        `;
+        document.body.appendChild(errorMsg);
+        
+        setTimeout(() => {
+            errorMsg.remove();
+        }, 3000);
+    }
+    
+    // Export functions to window
+    window.selectChat = selectChat;
+    window.deleteChatById = deleteChatById;
+    window.clearCurrentChat = clearCurrentChat;
+    window.createNewChat = createNewChat;
+});
+
+// Create a book card for display in the grid
 function createBookCard(book) {
     const bookDiv = document.createElement('div');
     bookDiv.className = 'book-cover';
@@ -139,6 +570,7 @@ function createBookCard(book) {
     return bookDiv;
 }
 
+// Create a research card for display in the grid
 function createResearchCard(paper) {
     const paperDiv = document.createElement('div');
     paperDiv.className = 'book-cover research-paper';
@@ -159,15 +591,28 @@ function createResearchCard(paper) {
     return paperDiv;
 }
 
-function checkImage(url) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(false);
-        img.src = url;
-    });
+// Create a scholarly article card
+function createScholarCard(paper) {
+    const paperDiv = document.createElement('div');
+    paperDiv.className = 'book-cover research-paper';
+    const imageUrl = paper.cover_url || "/static/images/research-placeholder.svg";
+    
+    paperDiv.innerHTML = `
+        <div class="book-cover-wrapper">
+            <img src="${imageUrl}" alt="${paper.title} cover" 
+                 onerror="this.src='/static/images/research-placeholder.svg'">
+            ${paper.has_ebook ? '<div class="ebook-badge"><i class="fas fa-file-pdf"></i> PDF</div>' : ''}
+        </div>
+        <p class="book-title">${paper.title}</p>
+        <p class="book-author">by ${paper.author}</p>
+        <p class="book-year">${paper.year}</p>
+    `;
+    
+    paperDiv.onclick = () => showResearchModal(paper);
+    return paperDiv;
 }
 
+// Show a modal with content
 function showModal(content) {
     const modal = document.getElementById('bookModal');
     const modalContent = document.getElementById('modalContent');
@@ -236,8 +681,28 @@ function showModal(content) {
     document.body.style.overflow = 'hidden';
 }
 
+// Show a research paper modal
 function showResearchModal(paper) {
-    const researchModalHtml = `
+    const modal = document.getElementById('bookModal');
+    const modalContent = document.getElementById('modalContent');
+    
+    const viewButtonHtml = paper.view_url
+        ? `<div class="read-online-section">
+            <a href="${paper.view_url}" target="_blank" class="read-online-btn">
+                <i class="fas fa-external-link-alt"></i> View Online
+            </a>
+           </div>`
+        : '';
+    
+    const downloadButtonHtml = paper.download_url
+        ? `<div class="buy-section">
+            <a href="${paper.download_url}" target="_blank" class="buy-btn">
+                <i class="fas fa-file-download"></i> Download PDF
+            </a>
+           </div>`
+        : '';
+    
+    modalContent.innerHTML = `
         <div class="modal-body">
             <div class="modal-book-info">
                 <div class="modal-book-cover">
@@ -245,162 +710,42 @@ function showResearchModal(paper) {
                         <img src="${paper.cover_url || '/static/images/research-placeholder.svg'}" 
                              alt="${paper.title} cover"
                              onerror="this.src='/static/images/research-placeholder.svg'">
-                        <div class="ebook-badge"><i class="fas fa-file-pdf"></i> PDF</div>
+                        ${paper.has_ebook ? '<div class="ebook-badge"><i class="fas fa-file-pdf"></i> PDF</div>' : ''}
                     </div>
                     <div class="action-buttons">
-                        ${paper.view_url ? `
-                            <div class="read-online-section">
-                                <a href="${paper.view_url}" target="_blank" class="read-online-btn">
-                                    <i class="fas fa-book-reader"></i>Read Online
-                                </a>
-                            </div>
-                        ` : ''}
-                        ${paper.download_url ? `
-                            <div class="read-online-section">
-                                <a href="${paper.download_url}" target="_blank" class="read-online-btn">
-                                    <i class="fas fa-download"></i>Download PDF
-                                </a>
-                            </div>
-                        ` : ''}
-                        <button class="add-to-collection-btn" onclick='addToCollection(${JSON.stringify(paper).replace(/"/g, '&quot;')})'>
-                            <i class="fas fa-plus"></i>Add to Collection
+                        ${viewButtonHtml}
+                        ${downloadButtonHtml}
+                        <button class="add-to-collection-btn" onclick="addToCollection(${JSON.stringify(paper).replace(/"/g, '&quot;')}, 'archive')">
+                            <i class="fas fa-plus"></i> Add to Collection
                         </button>
                     </div>
                 </div>
                 <div class="modal-book-details">
                     <div class="modal-book-metadata">
                         <h2>${paper.title}</h2>
-                        <p><strong>Author(s):</strong> ${paper.author || paper.authors || paper.all_authors || 'Unknown'}</p>
-                        <p><strong>Year:</strong> ${paper.year || 'Unknown'}</p>
-                        ${paper.journal ? `<p><strong>Journal:</strong> ${paper.journal}</p>` : ''}
-                        ${paper.conference ? `<p><strong>Conference:</strong> ${paper.conference}</p>` : ''}
+                        <p>by ${paper.author || 'Unknown Author'}</p>
+                        <p>Published: <span class="year-badge">${paper.year || 'Unknown'}</span></p>
                     </div>
-                    <div class="book-description">
+                    <div class="modal-book-recommendation">
                         <h3>Abstract</h3>
-                        <p>${paper.abstract || paper.description || 'No abstract available.'}</p>
+                        <p>${paper.description || "No abstract available."}</p>
                     </div>
                 </div>
             </div>
         </div>
     `;
     
-    const modal = document.getElementById('bookModal');
-    const modalContent = document.getElementById('modalContent');
-    modalContent.innerHTML = researchModalHtml;
     modal.style.display = 'block';
     document.body.style.overflow = 'hidden';
 }
 
-function showScholarModal(paper) {
-    const scholarModalHtml = `
-        <div class="modal-body">
-            <div class="modal-book-info">
-                <div class="modal-book-cover">
-                    <div class="book-cover-wrapper">
-                        <img src="${paper.cover_url || '/static/images/scholar-placeholder.svg'}" 
-                             alt="${paper.title} cover"
-                             onerror="this.src='/static/images/scholar-placeholder.svg'">
-                        <div class="ebook-badge scholar-badge">
-                            <i class="fas fa-file-alt"></i> ${paper.is_open_access ? 'Open Access' : (paper.has_ebook ? 'PDF' : 'Article')}
-                        </div>
-                    </div>
-                    <div class="action-buttons">
-                        ${paper.view_url ? `
-                            <div class="read-online-section">
-                                <a href="${paper.view_url}" target="_blank" class="read-online-btn">
-                                    <i class="fas fa-book-reader"></i>View Online
-                                </a>
-                            </div>
-                        ` : ''}
-                        ${paper.download_url ? `
-                            <div class="buy-section">
-                                <a href="${paper.download_url}" target="_blank" class="buy-btn">
-                                    <i class="fas fa-download"></i>Download PDF
-                                </a>
-                            </div>
-                        ` : ''}
-                        <button class="add-to-collection-btn" onclick='addToCollection(${JSON.stringify(paper).replace(/"/g, '&quot;')})'>
-                            <i class="fas fa-plus"></i>Add to Collection
-                        </button>
-                    </div>
-                </div>
-                <div class="modal-book-details">
-                    <div class="modal-book-metadata">
-                        <h2>${paper.title}</h2>
-                        <p><strong>Author(s):</strong> ${paper.author || paper.all_authors || 'Unknown'}</p>
-                        <p><strong>Year:</strong> ${paper.year || 'Unknown'}</p>
-                        ${paper.venue ? `<p><strong>Venue:</strong> <span class="venue-badge">${paper.venue}</span></p>` : ''}
-                        ${paper.citation_count ? `
-                            <div class="citation-stats">
-                                <span class="citation-count">
-                                    <i class="fas fa-quote-right"></i> ${paper.citation_count} citations
-                                </span>
-                                ${paper.influential_citation_count ? `
-                                    <span class="influential-count">
-                                        <i class="fas fa-star"></i> ${paper.influential_citation_count} influential
-                                    </span>
-                                ` : ''}
-                            </div>
-                        ` : ''}
-                    </div>
-                    <div class="book-description">
-                        <h3>Abstract</h3>
-                        <p>${paper.abstract || paper.description || 'No abstract available.'}</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    const modal = document.getElementById('bookModal');
-    const modalContent = document.getElementById('modalContent');
-    modalContent.innerHTML = scholarModalHtml;
-    modal.style.display = 'block';
-    document.body.style.overflow = 'hidden';
-}
-
+// Close the modal
 function closeModal() {
     const modal = document.getElementById('bookModal');
+    if (modal) {
     modal.style.display = 'none';
     document.body.style.overflow = 'auto';
 }
-
-window.onclick = function(event) {
-    const modal = document.getElementById('bookModal');
-    if (event.target == modal) {
-        closeModal();
-    }
-}
-
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeModal();
-    }
-});
-
-function createScholarCard(paper) {
-    const paperDiv = document.createElement('div');
-    paperDiv.className = 'book-cover scholar-paper';
-    const imageUrl = paper.cover_url || "/static/images/scholar-placeholder.svg";
-    
-    let badgeText = paper.has_ebook ? 'PDF' : 'Article';
-    if (paper.is_open_access && paper.has_ebook) {
-        badgeText = 'Open Access';
-    }
-    
-    paperDiv.innerHTML = `
-        <div class="book-cover-wrapper">
-            <img src="${imageUrl}" alt="${paper.title} cover" 
-                 onerror="this.src='/static/images/scholar-placeholder.svg'">
-            <div class="ebook-badge"><i class="fas fa-file-alt"></i> ${badgeText}</div>
-        </div>
-        <p class="book-title">${paper.title}</p>
-        <p class="book-author">by ${paper.author}</p>
-        <p class="book-year">${paper.venue ? paper.venue + ' · ' : ''}${paper.year}</p>
-    `;
-    
-    paperDiv.onclick = () => showScholarModal(paper);
-    return paperDiv;
 }
 
 function addToCollection(item, type = 'book') {

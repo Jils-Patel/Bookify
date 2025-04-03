@@ -289,19 +289,187 @@ h1 {
 /* Chat Interface Styles */
 .chat-container {
     display: flex;
-    flex-direction: column;
     height: calc(100% - 20px);
     width: 100%;
     position: relative;
+}
+
+.chat-sidebar {
+    width: 280px;
+    background-color: #f8f9fa;
+    border-right: 1px solid #e9ecef;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.sidebar-header {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e9ecef;
+    outline: none;
+    border: none;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+#newChatBtn {
+    background-color: #4299e1;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 0.85em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+#newChatBtn:hover {
+    background-color: #3182ce;
+}
+
+.chat-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.chats-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chat-item {
+    padding: 10px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.chat-item:hover {
+    background-color: #edf2f7;
+}
+
+.chat-item.active {
+    background-color: #e6f7ff;
+    border-left: 3px solid #4299e1;
+}
+
+.chat-item-content {
+    overflow: hidden;
+    flex: 1;
+}
+
+.chat-item-title {
+    font-weight: 500;
+    margin-bottom: 3px;
+    color: #2d3748;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-item-preview {
+    font-size: 0.8em;
+    color: #718096;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-item-actions {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.chat-item:hover .chat-item-actions {
+    opacity: 1;
+}
+
+.chat-item-delete {
+    color: #718096;
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.chat-item-delete:hover {
+    color: #e53e3e;
+}
+
+.chat-list-empty {
+    text-align: center;
+    padding: 20px;
+    color: #a0aec0;
+    font-size: 0.9em;
+}
+
+.chat-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.chat-main-header {
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.chat-main-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #4a5568;
+}
+
+.chat-main-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-main-actions button {
+    background: none;
+    border: none;
+    color: #718096;
+    padding: 5px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.chat-main-actions button:hover {
+    background-color: #edf2f7;
+    color: #4a5568;
 }
 
 .chat-history {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
-    margin-bottom: 120px;
     display: flex;
     flex-direction: column;
+    margin-bottom: 0;
 }
 
 .message {
@@ -420,66 +588,56 @@ h1 {
 }
 
 .chat-input-container {
-    position: fixed;
-    bottom: 0;
-    left: 70px; /* Match the width of the side navbar */
-    right: 0;
+    padding: 16px;
     background: white;
-    padding: 20px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
-    z-index: 100;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+    z-index: 5;
+    border-top: 1px solid #e9ecef;
 }
 
 .input-area {
-    max-width: 1200px;
-    margin: 0 auto;
     position: relative;
 }
 
-#userInput {
+textarea#userInput {
     width: 100%;
-    min-height: 50px;
-    padding: 12px 60px 12px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    font-family: inherit;
+    padding: 12px 50px 12px 16px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+    resize: none;
     font-size: 1em;
     line-height: 1.5;
-    resize: none;
-    transition: all 0.3s ease;
+    min-height: 48px;
+    max-height: 120px;
+    outline: none;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
 }
 
-#userInput:focus {
-    outline: none;
+textarea#userInput:focus {
     border-color: #4299e1;
-    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
 }
 
 #findBooksBtn {
     position: absolute;
-    right: 6px;
-    bottom: 12px;
-    background-color: #4299e1;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #4299e1;
     color: white;
     border: none;
-    border-radius: 10px;
-    width: 38px;
-    height: 38px;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.3s ease;
-    flex-shrink: 0;
+    transition: background-color 0.3s;
 }
 
 #findBooksBtn:hover {
     background-color: #3182ce;
-    transform: translateY(-2px);
-}
-
-#findBooksBtn:active {
-    transform: translateY(0);
 }
 
 #findBooksBtn i {
@@ -989,27 +1147,155 @@ h1 {
 
 /* Add this to your styles.css file */
 
-/* Typing animation container */
+/* Typing animation */
 .typing-animation {
-    display: inline-block;
-  }
-  
-  /* The dots that will animate */
-  .typing-dots:after {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.typing-dots {
+    display: flex;
+    align-items: center;
+}
+
+.typing-dots::before {
+    content: "AI is typing";
+    margin-right: 12px;
+    color: #718096;
+    font-size: 0.9em;
+}
+
+.typing-dots::after {
     content: '';
-    animation: typing 0.75s infinite;
-    font-size: 1.5em; /* Make dots bigger */
-    color: #808080; /* Gray color */
-  }
-  
-  /* Typing animation keyframes */
-  @keyframes typing {
-    0% { content: ''; }
-    25% { content: '.'; }
-    50% { content: '..'; }
-    75% { content: '...'; }
-    100% { content: ''; }
-  }
+    display: inline-block;
+    position: relative;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #718096;
+    animation: dotFade 1.4s linear infinite;
+    margin-left: 4px;
+}
+
+.typing-dots::before {
+    position: relative;
+}
+
+.typing-dots::after {
+    animation-delay: 0.7s;
+}
+
+.typing-dots::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    margin-right: 4px;
+    border-radius: 50%;
+    background-color: #718096;
+    display: inline-block;
+    animation: dotFade 1.4s ease-in-out infinite;
+    animation-delay: 0s;
+}
+
+.typing-dots::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    margin-left: 4px;
+    border-radius: 50%;
+    background-color: #718096;
+    display: inline-block;
+    animation: dotFade 1.4s ease-in-out infinite;
+    animation-delay: 0.7s;
+}
+
+.typing-dots {
+    position: relative;
+}
+
+.typing-dots::before,
+.typing-dots::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #718096;
+    display: inline-block;
+    animation: dotFade 1.4s ease-in-out infinite;
+}
+
+.typing-dots::before {
+    margin-right: 4px;
+    animation-delay: 0s;
+}
+
+.typing-dots::after {
+    margin-left: 4px;
+    animation-delay: 0.7s;
+}
+
+.typing-dots::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    margin: 0 4px;
+    border-radius: 50%;
+    background-color: #718096;
+    display: inline-block;
+    animation: dotFade 1.4s ease-in-out infinite;
+    animation-delay: 0.35s;
+}
+
+@keyframes dotFade {
+    0%, 100% {
+        opacity: 0.2;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Error message */
+.error-message {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #fee2e2;
+    color: #b91c1c;
+    padding: 12px 20px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 9999;
+    animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
+}
+
+.error-message i {
+    font-size: 1.2em;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
 
 /* Add to Collection Button Styling */
 .add-to-collection-btn {
@@ -1141,5 +1427,174 @@ h1 {
 @media (max-width: 768px) {
     .chat-input-container {
         left: 0;
+    }
+}
+
+.chat-actions {
+    max-width: 1200px;
+    margin: 10px auto 0;
+    display: flex;
+    justify-content: flex-end;
+}
+
+#clearChatBtn {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 0.85em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+#clearChatBtn:hover {
+    background-color: #e5e7eb;
+    color: #4b5563;
+}
+
+#clearChatBtn i {
+    font-size: 0.9em;
+}
+
+
+
+
+/* Add these to your existing CSS */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sidebar-toggle {
+    background: none;
+    border: none;
+    color: #718096;
+    padding: 5px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-toggle:hover {
+    background-color: #edf2f7;
+    color: #4a5568;
+}
+
+/* Add this for the toggled state */
+.chat-container.sidebar-collapsed .chat-sidebar {
+    margin-left: -300px;  /* Hide the sidebar */
+}
+
+.chat-container.sidebar-collapsed .sidebar-toggle i {
+    transform: rotate(180deg);  /* Rotate the chevron to point right */
+}
+
+/* Make transitions smooth */
+.chat-sidebar {
+    transition: margin-left 0.3s ease;
+}
+
+.sidebar-toggle i {
+    transition: transform 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .chat-container {
+        position: relative;
+        overflow-x: hidden;
+    }
+    
+    .chat-sidebar {
+        position: absolute;
+        z-index: 100;
+        left: 0;
+        top: 0;
+        height: 100%;
+        background: #f8f9fa;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        transform: translateX(0);
+        transition: transform 0.3s ease;
+        width: 280px;
+    }
+    
+    .chat-container.sidebar-collapsed .chat-sidebar {
+        transform: translateX(-100%);
+    }
+    
+    /* Add an overlay when sidebar is open on mobile */
+    .chat-sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 99;
+    }
+    
+    .chat-container:not(.sidebar-collapsed) .chat-sidebar-overlay {
+        display: block;
+    }
+}
+
+/* Hide/show elements based on screen size */
+.mobile-only {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-only {
+        display: block;
+    }
+    
+    .desktop-only {
+        display: none;
+    }
+    
+    /* On mobile, we want the sidebar to be hidden by default */
+    .chat-container {
+        overflow-x: hidden;
+    }
+    
+    .chat-container .chat-sidebar {
+        transform: translateX(-100%);
+    }
+    
+    .chat-container.sidebar-visible .chat-sidebar {
+        transform: translateX(0);
+    }
+
+    /* Style for the sidebar buttons container */
+    .sidebar-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    /* Style for the close sidebar button */
+    #closeSidebarBtn {
+        background: none;
+        border: none;
+        color: #718096;
+        padding: 5px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    #closeSidebarBtn:hover {
+        background-color: #edf2f7;
+        color: #4a5568;
     }
 }

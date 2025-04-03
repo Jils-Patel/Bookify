@@ -3,6 +3,24 @@ document.addEventListener('DOMContentLoaded', function() {
     let statusChart = null;
     let progressChart = null;
 
+    // Set up refresh button for recommendations
+    const refreshRecommendationsBtn = document.getElementById('refreshRecommendations');
+    if (refreshRecommendationsBtn) {
+        refreshRecommendationsBtn.addEventListener('click', function() {
+            // Show a rotating animation on the button while refreshing
+            this.classList.add('refreshing');
+            
+            // Force refresh the recommendations
+            loadRecommendations(true)
+                .finally(() => {
+                    // Remove the animation class after a short delay
+                    setTimeout(() => {
+                        refreshRecommendationsBtn.classList.remove('refreshing');
+                    }, 1000);
+                });
+        });
+    }
+
     // Initialize Firebase auth state
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
@@ -17,10 +35,27 @@ document.addEventListener('DOMContentLoaded', function() {
     async function initDashboard() {
         try {
             showLoading('Loading your dashboard...');
-            await updateStats();
-            await loadRecentActivity();
+            
+            // Load the main dashboard data
+            await Promise.all([
+                updateStats(),
+                loadRecentActivity()
+            ]);
+            
             hideLoading();
-        } catch (error) {
+            
+            // Load recommendations separately after main content is displayed
+            // Check if reading preferences have changed in the settings, forcing a refresh if needed
+            const refreshNeeded = await haveReadingPreferencesChanged();
+            loadRecommendations(refreshNeeded).catch(error => {
+                console.error('Error loading recommendations:', error);
+                const recommendationsContainer = document.getElementById('recommendationsContainer');
+                if (recommendationsContainer) {
+                    recommendationsContainer.innerHTML = '<div class="empty-state"><p>Failed to load recommendations. Please try again later.</p></div>';
+                }
+            });
+            
+            } catch (error) {
             console.error('Error initializing dashboard:', error);
             showErrorMessage('Failed to load dashboard data. Please try again later.');
             hideLoading();
@@ -118,7 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('totalPagesRead').textContent = totalPagesRead;
         document.getElementById('pagesLeft').textContent = totalPagesLeft;
     }
-
+    
     function updateChartsUI(statusData, books) {
         // Status Chart
         const statusCtx = document.getElementById('statusChart').getContext('2d');
@@ -343,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             activityContainer.innerHTML = activitiesHTML;
             
-        } catch (error) {
+            } catch (error) {
             console.error('Error loading recent activity:', error);
             document.getElementById('recentActivity').innerHTML = `
                 <div class="empty-state">
@@ -428,10 +463,16 @@ document.addEventListener('DOMContentLoaded', function() {
             await loadBooksFromTracker();
         }
         
-        updateStats();
-        updateReadingGoals();
-        updateRecommendations();
-        updateRecentActivity();
+        // Update the primary content first
+        await Promise.all([
+            updateStats(),
+            updateReadingGoals(),
+            loadRecentActivity()
+        ]);
+        
+        // Check if reading preferences have changed before refreshing recommendations
+        const refreshNeeded = await haveReadingPreferencesChanged();
+        loadRecommendations(refreshNeeded);
     }
 
     async function loadBooks(useLocalFallback = true) {
@@ -447,7 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('No books in localStorage, trying API endpoint...');
             const response = await fetch('/get_books');
             const data = await response.json();
-            
+
             console.log('Raw API response:', data);
             
             if (data && Array.isArray(data)) {
@@ -504,7 +545,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Attempting to load books directly from database...');
             const response = await fetch('/get_books');
             const data = await response.json();
-            
+
             if (data && Array.isArray(data) && data.length > 0) {
                 console.log('Successfully loaded books from database:', data.length);
                 // Store in localStorage to make it available for other functions
@@ -524,352 +565,119 @@ document.addEventListener('DOMContentLoaded', function() {
         // Leaving it empty to avoid breaking any existing code that calls it
     }
 
-    async function updateRecommendations() {
-        // For recommendations, we can use local storage as a fallback
-        const books = await loadBooks(false); // true means fall back to localStorage
-        const container = document.getElementById('recommendedBooks');
+    async function loadRecommendations(forceRefresh = false) {
+        const recommendationsContainer = document.getElementById('recommendationsContainer');
         
-        if (!container) {
-            console.error('recommendedBooks container not found');
-            return;
-        }
-
-        if (books.length === 0) {
-            container.innerHTML = '<p>Add books to your collection to get personalized recommendations!</p>';
-            return;
-        }
-
-        // Get user preferences from Firestore
-        let userPreferences = '';
+        if (!recommendationsContainer) return;
+        
         try {
-            // Get the current Firebase user's ID token
+            // Check if we have cached recommendations in localStorage
+            const cachedRecommendations = localStorage.getItem('cachedRecommendations');
+            const cachedPreferences = localStorage.getItem('cachedReadingPreferences');
+            const lastUpdated = localStorage.getItem('recommendationsLastUpdated');
+            
+            // Get current user
             const currentUser = firebase.auth().currentUser;
-            if (currentUser) {
-                const idToken = await currentUser.getIdToken(true);
-                
-                // Make authenticated request to get settings
-                const response = await fetch('/get_settings', {
-                    headers: {
-                        'Authorization': `Bearer ${idToken}`
-                    }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                
-                const settings = await response.json();
-                
-                if (settings && settings.reading_preferences) {
-                    userPreferences = settings.reading_preferences;
-                } else {
-                    console.log('No reading preferences found in Firestore');
-                }
-            } else {
-                console.log('No authenticated user, cannot fetch reading preferences');
+            if (!currentUser) {
+                console.error('No authenticated user');
+                recommendationsContainer.innerHTML = '<div class="empty-state"><p>Please sign in to see personalized recommendations.</p></div>';
+                return;
             }
-        } catch (error) {
-            console.error('Error loading preferences from Firestore:', error);
-        }
-        
-        // Extract keywords based on user preferences or from collection
-        let keywords;
-        if (userPreferences && userPreferences.trim() !== '') {
-            try {
-                const response = await fetch('/recommend', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        user_input: userPreferences,
-                        max_results: 10
-                    })
-                });
-                
-                const data = await response.json();
-                if (data.books && data.books.length > 0) {
-                    keywords = data.books.slice(0, 5).flatMap(book => {
-                        const words = [];
-                        if (book.title) words.push(...book.title.toLowerCase().split(/\s+/).filter(w => w.length > 3));
-                        if (book.author) words.push(book.author.toLowerCase());
-                        return words;
-                    });
-                } else {
-                    keywords = extractKeywordsFromRecent(books);
-                }
-            } catch (error) {
-                console.error('Error getting recommendations from preferences:', error);
-                keywords = extractKeywordsFromRecent(books);
-            }
-        } else {
-            console.log('No reading preferences found, using collection data');
-            keywords = extractKeywordsFromRecent(books);
-        }
-        
-        console.log('Using keywords for recommendations:', keywords);
-        
-        // Display loading state
-        container.innerHTML = '<p>Finding recommendations based on your preferences and collection...</p>';
-
-        try {
-            const [openLibrary, internetArchive, semanticScholar] = await Promise.all([
-                getOpenLibraryRecommendations(keywords),
-                //getInternetArchiveRecommendations(keywords),
-                //getSemanticScholarRecommendations(keywords)
-            ]);
-            const existingTitles = new Set(books.map(book => book.title.toLowerCase()));
-            const filteredRecommendations = {
-                openLibrary: openLibrary.filter(book => !existingTitles.has(book.title.toLowerCase())).slice(0, 5),
-                //internetArchive: internetArchive.filter(book => !existingTitles.has(book.title.toLowerCase())).slice(0, 5),
-                //semanticScholar: semanticScholar.filter(book => !existingTitles.has(book.title.toLowerCase())).slice(0, 5)
-            };
-
-            displayRecommendationsBySource(filteredRecommendations);
-        } catch (error) {
-            console.error('Error fetching recommendations:', error);
-            container.innerHTML = '<p>Unable to load recommendations at this time.</p>';
-        }
-    }
-
-    function extractKeywordsFromRecent(books) {
-        const shuffledBooks = [...books].sort(() => Math.random() - 0.5);
-
-        const randomBooks = shuffledBooks.slice(0, 5);
-        const keywordCounts = new Map();
-        
-        randomBooks.forEach(book => {
-            // Extract words from titles
-            if (book.title) {
-                book.title.split(/\s+/).forEach(word => {
-                    word = word.toLowerCase().replace(/[^a-z]/g, '');
-                    if (word.length > 3) {
-                        keywordCounts.set(word, (keywordCounts.get(word) || 0) + 2);
-                    }
-                });
-            }
-
-            if (book.author) {
-                book.author.split(/\s+/).forEach(word => {
-                    word = word.toLowerCase().replace(/[^a-z]/g, '');
-                    if (word.length > 3) {
-                        keywordCounts.set(word, (keywordCounts.get(word) || 0) + 2);
-                    }
-                });
-            }
-
-            if (book.subjects) {
-                book.subjects.forEach(subject => {
-                    subject.split(/\s+/).forEach(word => {
-                        word = word.toLowerCase().replace(/[^a-z]/g, '');
-                        if (word.length > 3) {
-                            keywordCounts.set(word, (keywordCounts.get(word) || 0) + 1);
-                        }
-                    });
-                });
-            }
-        });
-
-        return Array.from(keywordCounts.entries())
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10)
-            .map(([keyword]) => keyword);
-    }
-
-    async function getOpenLibraryRecommendations(keywords) {
-        const recommendations = [];
-        const searchQuery = keywords.slice(0, 3).join(' OR '); // Use top 3 keywords
-
-        try {
-            const response = await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(searchQuery)}&limit=10`);
-            const data = await response.json();
-
-            recommendations.push(...data.docs.map(book => ({
-                title: book.title,
-                author: book.author_name ? book.author_name[0] : 'Unknown Author',
-                coverUrl: book.cover_i 
-                    ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
-                    : '/static/images/book-placeholder.svg',
-                source: 'Open Library',
-                year: book.first_publish_year,
-                description: book.description || book.excerpt || book.first_sentence || 'No description available.',
-                readUrl: book.key 
-                    ? `https://openlibrary.org${book.key}`
-                    : null,
-                buyUrl: `https://www.amazon.com/s?k=${encodeURIComponent(book.title + ' ' + (book.author_name ? book.author_name[0] : ''))}`,
-                id: book.key
-            })));
             
-            // For each book that doesn't have a description, fetch its details
-            for (let i = 0; i < recommendations.length; i++) {
-                if (recommendations[i].description === 'No description available.' && recommendations[i].id) {
-                    try {
-                        const bookResponse = await fetch(`https://openlibrary.org${recommendations[i].id}.json`);
-                        const bookData = await bookResponse.json();
-                        
-                        if (bookData.description) {
-                            recommendations[i].description = typeof bookData.description === 'string' 
-                                ? bookData.description 
-                                : bookData.description.value || 'No description available.';
-                        }
-                    } catch (err) {
-                        console.log('Failed to fetch details for book:', recommendations[i].title);
-                    }
+            // Fetch current user settings to check reading preferences
+            const idToken = await currentUser.getIdToken(true);
+            const settingsResponse = await fetch('/get_settings', {
+                headers: {
+                    'Authorization': `Bearer ${idToken}`
                 }
+            });
+            
+            if (!settingsResponse.ok) {
+                throw new Error('Failed to retrieve user settings');
             }
-        } catch (error) {
-            console.error('Open Library API error:', error);
-        }
-
-        return recommendations;
-    }
-
-    async function getInternetArchiveRecommendations(keywords) {
-        const recommendations = [];
-        const searchQuery = keywords.slice(0, 3).join(' OR '); // Use top 3 keywords
-
-        try {
-            const response = await fetch(`https://archive.org/advancedsearch.php?q=${encodeURIComponent(searchQuery)}+AND+mediatype:(texts)&fl[]=title,creator,identifier,description,downloadable&output=json&rows=10`);
-            const data = await response.json();
-
-            recommendations.push(...data.response.docs.map(book => ({
-                title: book.title,
-                author: book.creator || 'Unknown Author',
-                coverUrl: `https://archive.org/services/img/${book.identifier}`,
-                source: 'Internet Archive',
-                description: book.description || 'No description available.',
-                readUrl: `https://archive.org/details/${book.identifier}`,
-                downloadUrl: book.downloadable ? `https://archive.org/download/${book.identifier}/${book.identifier}.pdf` : null,
-                has_ebook: book.downloadable || false,
-                id: book.identifier
-            })));
             
-            // If descriptions are missing, fetch individual metadata
-            for (let i = 0; i < recommendations.length; i++) {
-                if (recommendations[i].description === 'No description available.' && recommendations[i].id) {
-                    try {
-                        const metadataUrl = `https://archive.org/metadata/${recommendations[i].id}`;
-                        const metadataResponse = await fetch(metadataUrl);
-                        const metadata = await metadataResponse.json();
-                        
-                        if (metadata.metadata && metadata.metadata.description) {
-                            recommendations[i].description = metadata.metadata.description;
-                        }
-                    } catch (err) {
-                        console.log('Failed to fetch metadata for item:', recommendations[i].title);
-                    }
-                }
+            const settings = await settingsResponse.json();
+            let currentPreferences = settings && settings.reading_preferences ? 
+                settings.reading_preferences.trim() : 
+                "popular fiction and non-fiction books";
+            
+            // Determine if we need to fetch new recommendations
+            const preferencesChanged = cachedPreferences !== currentPreferences;
+            const shouldRefresh = forceRefresh || !cachedRecommendations || preferencesChanged;
+            
+            if (!shouldRefresh && cachedRecommendations) {
+                console.log('Using cached recommendations from localStorage');
+                recommendationsContainer.innerHTML = cachedRecommendations;
+                return;
             }
-        } catch (error) {
-            console.error('Internet Archive API error:', error);
-        }
-
-        return recommendations;
-    }
-
-    async function getSemanticScholarRecommendations(keywords) {
-        const recommendations = [];
-        const searchQuery = keywords.slice(0, 3).join(' OR '); // Use top 3 keywords
-
-        try {
-            const response = await fetch(`https://api.semanticscholar.org/graph/v1/paper/search?query=${encodeURIComponent(searchQuery)}&limit=10&fields=title,authors,year,abstract,url,openAccessPdf`);
-            const data = await response.json();
-
-            recommendations.push(...data.data.map(paper => ({
-                title: paper.title,
-                author: paper.authors?.[0]?.name || 'Unknown Author',
-                coverUrl: '/static/images/book-placeholder.svg', // Use placeholder for papers
-                source: 'Semantic Scholar',
-                year: paper.year,
-                description: paper.abstract || 'No description available.',
-                readUrl: paper.url,
-                downloadUrl: paper.openAccessPdf?.url || null,
-                has_ebook: paper.openAccessPdf?.url ? true : false,
-                id: paper.paperId
-            })));
             
-            // For papers without abstracts, try to fetch more details
-            for (let i = 0; i < recommendations.length; i++) {
-                if (recommendations[i].description === 'No description available.' && recommendations[i].id) {
-                    try {
-                        const paperUrl = `https://api.semanticscholar.org/graph/v1/paper/${recommendations[i].id}?fields=abstract`;
-                        const paperResponse = await fetch(paperUrl);
-                        const paperData = await paperResponse.json();
-                        
-                        if (paperData.abstract) {
-                            recommendations[i].description = paperData.abstract;
-                        }
-                    } catch (err) {
-                        console.log('Failed to fetch details for paper:', recommendations[i].title);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Semantic Scholar API error:', error);
-        }
-
-        return recommendations;
-    }
-
-    function displayRecommendationsBySource(recommendations) {
-        const container = document.getElementById('recommendedBooks');
-        container.innerHTML = '';
-
-        const createSourceSection = (title, books, source) => {
-            if (!books || books.length === 0) return '';
-            
-            const booksHtml = books.map(book => `
-                <div class="book-card" onclick="showBookDetails(${JSON.stringify(book).replace(/'/g, "\\'").replace(/"/g, '&quot;')})">
-                    <div class="book-cover">
-                        <img src="${book.coverUrl || '/static/images/book-placeholder.svg'}" 
-                             alt="${book.title}" 
-                                         onerror="this.src='/static/images/book-placeholder.svg'">
-                        ${book.has_ebook ? '<div class="ebook-badge"><i class="fas fa-book-open"></i></div>' : ''}
-                    </div>
-                    <div class="book-info">
-                        <h3 class="book-title">${book.title}</h3>
-                        <p class="book-author">by ${book.author}</p>
-                        <p class="book-year">${book.year || ''}</p>
-                        <div class="book-source">${source}</div>
-                                </div>
-                            </div>
-            `).join('');
-            
-            return `
-                <div class="recommendations-section">
-                    <h3 class="section-title">${title}</h3>
-                    <div class="source-books">
-                        ${booksHtml}
-                    </div>
+            // Show loading state
+            recommendationsContainer.innerHTML = `
+                <div class="loading-recommendations">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Finding personalized book recommendations based on your preferences...</span>
                 </div>
             `;
-        };
-
-        const sections = [
-            createSourceSection('', recommendations.openLibrary, 'Open Library'),
-            createSourceSection('', recommendations.semanticScholar, 'Semantic Scholar'),
-            createSourceSection('', recommendations.internetArchive, 'Internet Archive')
-        ].filter(Boolean); // Remove empty sections
-        
-        if (sections.length > 0) {
-            container.innerHTML = sections.join('');
-        } else {
-            container.innerHTML = '<p>No recommendations available at this time.</p>';
-        }
-        
-        // Define showBookDetails function if not already defined
-        if (!window.showBookDetails) {
-            window.showBookDetails = function(bookData) {
-                // Parse the book data if it's a string
-                if (typeof bookData === 'string') {
-                    try {
-                        bookData = JSON.parse(bookData);
-                    } catch (e) {
-                        console.error('Error parsing book data:', e);
+            
+            let query = currentPreferences;
+            console.log('Using preferences for recommendations:', query);
+            
+            // Fetch new recommendations
+            const recommendResponse = await fetch('/recommend', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_input: query,
+                    max_results: 10
+                })
+            });
+            
+            if (!recommendResponse.ok) {
+                throw new Error('Failed to retrieve recommendations');
+            }
+            
+            const recommendData = await recommendResponse.json();
+            
+            if (!recommendData.books || recommendData.books.length === 0) {
+                const emptyState = '<div class="empty-state"><p>No recommendations found based on your preferences. Try updating your reading preferences in Settings.</p></div>';
+                recommendationsContainer.innerHTML = emptyState;
+                localStorage.setItem('cachedRecommendations', emptyState);
+                localStorage.setItem('cachedReadingPreferences', currentPreferences);
+                localStorage.setItem('recommendationsLastUpdated', new Date().toISOString());
                         return;
-                    }
-                }
-                
+            }
+            
+            // Generate HTML for recommendations
+            let recommendationsHTML = '';
+            
+            recommendData.books.forEach(book => {
+                recommendationsHTML += `
+                    <div class="book-recommendation" onclick="showBookModal(${JSON.stringify(book).replace(/"/g, '&quot;')})">
+                        <div class="book-cover-wrapper">
+                            <img src="${book.cover_url || '/static/images/book-placeholder.svg'}" 
+                                alt="${book.title} cover" 
+                                onerror="this.src='/static/images/book-placeholder.svg'">
+                            ${book.has_ebook ? '<div class="ebook-badge"><i class="fas fa-book-open"></i> E-book</div>' : ''}
+                        </div>
+                        <div class="book-info">
+                            <div class="book-title">${book.title}</div>
+                            <div class="book-author">by ${book.author || 'Unknown Author'}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Update the UI and cache
+            recommendationsContainer.innerHTML = recommendationsHTML;
+            localStorage.setItem('cachedRecommendations', recommendationsHTML);
+            localStorage.setItem('cachedReadingPreferences', currentPreferences);
+            localStorage.setItem('recommendationsLastUpdated', new Date().toISOString());
+            
+            // Add showBookModal function if it doesn't exist
+            if (!window.showBookModal) {
+                window.showBookModal = function(book) {
                 // Get or create modal elements
                 let modal = document.getElementById('bookModal');
                 if (!modal) {
@@ -879,110 +687,70 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.body.appendChild(modal);
                 }
                 
-                // Create action buttons HTML
+                    // Create action buttons
                 const actionButtons = [];
                 
-                
-                // Read Online button if URL exists
-                if (bookData.readUrl) {
+                    // Read Online button
+                    if (book.reading_url) {
                     actionButtons.push(`
-                        <a href="${bookData.readUrl}" target="_blank" class="action-button read-online">
+                            <a href="${book.reading_url}" target="_blank" class="read-online-btn">
                             <i class="fas fa-book-reader"></i> Read Online
                         </a>
                     `);
                 }
                 
-                // Buy button if URL exists
-                if (bookData.buyUrl) {
+                    // Buy button
+                    if (book.buy_link) {
                     actionButtons.push(`
-                        <a href="${bookData.buyUrl}" target="_blank" class="action-button buy">
+                            <a href="${book.buy_link}" target="_blank" class="buy-btn">
                             <i class="fas fa-shopping-cart"></i> Buy on Amazon
                         </a>
                     `);
                 }
                 
-                // Download button if URL exists
-                if (bookData.downloadUrl) {
+                    // Add to collection button
                     actionButtons.push(`
-                        <a href="${bookData.downloadUrl}" target="_blank" class="action-button download">
-                            <i class="fas fa-download"></i> Download PDF
-                        </a>
-                    `);
-                }
-
-                // Add to Collection button
-                actionButtons.push(`
-                    <button class="action-button add-to-collection" onclick="addToCollection(${JSON.stringify(bookData).replace(/"/g, '&quot;')}, '${bookData.source}')">
+                        <button class="add-to-collection-btn" onclick="addToCollection(${JSON.stringify(book).replace(/"/g, '&quot;')})">
                         <i class="fas fa-plus"></i> Add to Collection
                     </button>
                 `);
                 
-                // Populate the modal content
+                    // Populate modal with book data
                 modal.innerHTML = `
                     <div class="modal-content">
-                        <span class="close-button" onclick="closeModal()">&times;</span>
-                        <div class="book-detail">
-                            <div class="book-detail-header">
-                                <div class="book-detail-cover-container">
-                                    <img src="${bookData.coverUrl || '/static/images/book-placeholder.svg'}" 
-                                         alt="${bookData.title}" 
-                                         class="book-detail-cover"
+                            <span class="close-button" onclick="closeBookModal()">&times;</span>
+                            <div class="modal-book-info">
+                                <div class="modal-book-cover">
+                                    <div class="book-cover-wrapper">
+                                        <img src="${book.cover_url || '/static/images/book-placeholder.svg'}" 
+                                             alt="${book.title} cover" 
                                          onerror="this.src='/static/images/book-placeholder.svg'">
-                                    <div class="book-detail-actions">
+                                        ${book.has_ebook ? '<div class="ebook-badge"><i class="fas fa-book-open"></i> E-book</div>' : ''}
+                                    </div>
+                                    <div class="action-buttons">
                                         ${actionButtons.join('')}
                                     </div>
                                 </div>
-                                <div class="book-detail-info">
-                                    <h2>${bookData.title}</h2>
-                                    <p class="author">by ${bookData.author}</p>
-                                    ${bookData.year ? `<p class="year">${bookData.year}</p>` : ''}
-                                    <p class="source">${bookData.source}</p>
-                                    <div class="book-detail-description">
-                                        <h3>Description</h3>
-                                        <p>${formatDescription(bookData.description)}</p>
+                                <div class="modal-book-details">
+                                    <h2 class="modal-book-title">${book.title}</h2>
+                                    <div class="modal-book-metadata">
+                                        <p>by ${book.author || 'Unknown Author'}</p>
+                                        <p>Published: ${book.year || 'Unknown'}</p>
                                     </div>
+                                    <div class="modal-book-recommendation">
+                                        <h3>Description</h3>
+                                        <p>${book.recommendation || book.description || 'No description available.'}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                 `;
                 
-                // Display the modal
                 modal.style.display = 'block';
                 document.body.style.overflow = 'hidden';
             };
             
-            // Function to format and sanitize description text
-            function formatDescription(description) {
-                if (!description || description === 'No description available.') {
-                    return 'No description available.';
-                }
-                
-                // If it's an array, join it
-                if (Array.isArray(description)) {
-                    description = description.join(' ');
-                }
-                
-                // Convert to string if it's not already
-                description = String(description);
-                
-                // Remove HTML tags for safety
-                description = description.replace(/<\/?[^>]+(>|$)/g, '');
-                
-                // Replace newlines with <br> tags
-                description = description.replace(/\n/g, '<br>');
-                
-                // Truncate very long descriptions
-                if (description.length > 1000) {
-                    description = description.substring(0, 1000) + '...';
-                }
-                
-                return description;
-            }
-            
-            // Add closeModal function if not defined
-            if (!window.closeModal) {
-                window.closeModal = function() {
+                window.closeBookModal = function() {
                     const modal = document.getElementById('bookModal');
                     if (modal) {
                         modal.style.display = 'none';
@@ -994,116 +762,80 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.addEventListener('click', function(event) {
                     const modal = document.getElementById('bookModal');
                     if (event.target === modal) {
-                        closeModal();
+                        closeBookModal();
                     }
                 });
                 
                 // Close modal on escape key
                 document.addEventListener('keydown', function(event) {
                     if (event.key === 'Escape') {
-                        closeModal();
+                        closeBookModal();
                     }
                 });
-            }
-        }
-        
-        // If window.addToCollection is not defined yet, define it to save to the database
-        if (!window.addToCollection) {
-            window.addToCollection = function(item, source) {
-                // Parse the book data if it's a string
-                if (typeof item === 'string') {
-                    try {
-                        item = JSON.parse(item);
-                    } catch (e) {
-                        console.error('Error parsing book data:', e);
-                        return;
-                    }
-                }
                 
-                const bookData = {
-                    title: item.title || '',
-                    author: item.author || '',
-                    description: item.description || '',
-                    cover_url: item.coverUrl || item.cover_url || '',
-                    total_pages: item.total_pages || null,
-                    pages_read: 0,
-                    status: 'to-read',
-                    notes: '',
-                    source_url: item.readUrl || item.reading_url || '',
-                    download_url: item.downloadUrl || item.download_url || '',
-                    buy_link: item.buyUrl || item.buy_link || '',
-                    year: item.year || 'Unknown'
-                };
-                
-                // Show a success notification
-                showNotification('Adding "' + bookData.title + '" to your collection...', 'loading');
-                
-                // Save to Supabase via API
-                fetch('/api/documents', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(bookData)
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Show success message
-                        showNotification('Added "' + bookData.title + '" to your collection!', 'success');
+                // Add to collection function
+                window.addToCollection = function(bookData) {
+                    if (typeof window.addBookToCollection === 'function') {
+                        // Make sure we preserve important properties like reading_url
+                        const bookToAdd = {
+                            ...bookData,
+                            reading_url: bookData.reading_url || null,
+                            buy_link: bookData.buy_link || null,
+                            has_ebook: bookData.has_ebook || false,
+                            // Map reading_url to source_url for the book tracker page
+                            source_url: bookData.reading_url || null
+                        };
                         
-                        // Close the modal
-                        closeModal();
-                        
-                        // Update stats to reflect new addition
-                        setTimeout(updateDashboard, 500);
-                    } else {
-                        // Show error message
-                        showNotification('Error: ' + (data.message || 'Could not add to collection'), 'error');
-                    }
+                        window.addBookToCollection(bookToAdd)
+                          .then(docId => {
+                              closeBookModal();
+                              loadRecentActivity(); // Refresh the recent activity
                 })
                 .catch(error => {
-                    console.error('Error adding to collection:', error);
-                    showNotification('Error: Could not add to collection. Please try again.', 'error');
-                });
-            };
+                              console.error('Error adding book to collection:', error);
+                          });
+                    } else {
+                        console.error('addBookToCollection function not available');
+                        showErrorMessage('Could not add to collection. Please try again later.');
+                    }
+                };
+            }
+            
+        } catch (error) {
+            console.error('Error loading recommendations:', error);
+            recommendationsContainer.innerHTML = '<div class="empty-state"><p>Failed to load recommendations. Please try again later.</p></div>';
         }
-        
-        // Helper function for notifications
-        if (!window.showNotification) {
-            window.showNotification = function(message, type = 'info') {
-                // Remove any existing notifications
-                const existingNotifications = document.querySelectorAll('.notification');
-                existingNotifications.forEach(notification => notification.remove());
-                
-                // Create notification element
-                const notification = document.createElement('div');
-                notification.className = `notification ${type}-notification`;
-                
-                // Set icon based on type
-                let icon = 'info-circle';
-                if (type === 'success') icon = 'check-circle';
-                if (type === 'error') icon = 'exclamation-circle';
-                if (type === 'loading') icon = 'spinner fa-spin';
-                
-                notification.innerHTML = `
-                    <i class="fas fa-${icon}"></i>
-                    <span>${message}</span>
-                `;
-                
-                // Add to DOM
-                document.body.appendChild(notification);
-                
-                // Remove after delay (except for loading)
-                if (type !== 'loading') {
-                    setTimeout(() => {
-                        notification.classList.add('fade-out');
-                        setTimeout(() => notification.remove(), 300);
-                    }, 3000);
+    }
+
+    // Helper function to check if reading preferences have changed
+    async function haveReadingPreferencesChanged() {
+        try {
+            const currentUser = firebase.auth().currentUser;
+            if (!currentUser) return true; // Force refresh if no user
+            
+            const cachedPreferences = localStorage.getItem('cachedReadingPreferences');
+            if (!cachedPreferences) return true; // Force refresh if no cached preferences
+            
+            // Get current preferences from settings
+            const idToken = await currentUser.getIdToken(true);
+            const settingsResponse = await fetch('/get_settings', {
+                headers: {
+                    'Authorization': `Bearer ${idToken}`
                 }
-                
-                return notification;
-            };
+            });
+            
+            if (!settingsResponse.ok) return true; // Force refresh if can't get settings
+            
+            const settings = await settingsResponse.json();
+            const currentPreferences = settings && settings.reading_preferences ? 
+                settings.reading_preferences.trim() : 
+                "popular fiction and non-fiction books";
+            
+            // Return true if preferences have changed
+            return cachedPreferences !== currentPreferences;
+        } catch (error) {
+            console.error('Error checking reading preferences:', error);
+            return true; // Force refresh if there's an error
         }
     }
 

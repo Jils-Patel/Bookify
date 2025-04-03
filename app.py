@@ -501,25 +501,37 @@ def recommend():
     data = request.json
     user_input = data.get('user_input', '')
     max_results = data.get('max_results', 5)  # Default to 5 if not specified
+    conversation_context = data.get('conversation_context', [])  # Get conversation history if provided
     
     try:
+        # Process conversation context
+        messages = [
+            {"role": "system", "content": """You are an AI that determines if a user's message requires book recommendations, research papers, or just a text response.
+            Respond with exactly ONE of these formats:
+            - 'BOOKS' if the user is asking for fiction or general book recommendations
+            - 'RESEARCH_RECENT' if the user is asking for recent/current academic papers, latest research, or new scholarly content
+            - 'RESEARCH_ARCHIVE' if the user is asking for historical research, older papers, or classic academic works
+            - 'TEXT' if the user is asking a general question or making a comment
+            - 'BOOKS_WITH_COUNT X' if the user is specifically asking for X number of book recommendations
+            - 'RESEARCH_RECENT_WITH_COUNT X' if the user is specifically asking for X number of recent research papers
+            - 'RESEARCH_ARCHIVE_WITH_COUNT X' if the user is specifically asking for X number of older/archived research papers
+            
+            If you're unsure whether research is recent or archived, default to 'RESEARCH_RECENT'.
+            Only respond with exactly one of these formats, nothing else."""}
+        ]
+        
+        # Add conversation history if available (up to last 5 messages)
+        if conversation_context:
+            # Limit to last 5 messages for context window efficiency
+            recent_context = conversation_context[-5:] if len(conversation_context) > 5 else conversation_context
+            messages.extend(recent_context)
+        
+        # Add the current user message
+        messages.append({"role": "user", "content": user_input})
+
         intent_check = openai.ChatCompletion.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": """You are an AI that determines if a user's message requires book recommendations, research papers, or just a text response.
-                Respond with exactly ONE of these formats:
-                - 'BOOKS' if the user is asking for fiction or general book recommendations
-                - 'RESEARCH_RECENT' if the user is asking for recent/current academic papers, latest research, or new scholarly content
-                - 'RESEARCH_ARCHIVE' if the user is asking for historical research, older papers, or classic academic works
-                - 'TEXT' if the user is asking a general question or making a comment
-                - 'BOOKS_WITH_COUNT X' if the user is specifically asking for X number of book recommendations
-                - 'RESEARCH_RECENT_WITH_COUNT X' if the user is specifically asking for X number of recent research papers
-                - 'RESEARCH_ARCHIVE_WITH_COUNT X' if the user is specifically asking for X number of older/archived research papers
-                
-                If you're unsure whether research is recent or archived, default to 'RESEARCH_RECENT'.
-                Only respond with exactly one of these formats, nothing else."""},
-                {"role": "user", "content": user_input}
-            ],
+            messages=messages,
             max_tokens=15,
             temperature=0.1
         ).choices[0].message['content'].strip()
@@ -550,12 +562,21 @@ def recommend():
             book_results = search_open_library(user_input, max_results=max_results)
             _, books_info = get_book_descriptions(user_input, book_results)
 
+            # Prepare messages for AI response
+            ai_messages = [
+                {"role": "system", "content": "You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses concise (1-2 sentences) and conversational."}
+            ]
+            
+            # Add conversation history if available
+            if conversation_context:
+                ai_messages.extend(conversation_context[-5:])
+            
+            # Add current context and books
+            ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Books: {book_results}\n Book Info: {books_info}\n You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses to 1-2 sentences and conversational. Don't list the books out unless the user has a question about it."})
+
             ai_response = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses concise (1-2 sentences) and conversational."},
-                    {"role": "user", "content": f"User request: {user_input}\n Books: {book_results}\n Book Info: {books_info}\n You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses to 1-2 sentences and conversational. Don't list the books out unless the user has a question about it."}
-                ],
+                messages=ai_messages,
                 max_tokens=150,
                 temperature=0.7
             ).choices[0].message['content']
@@ -576,12 +597,21 @@ def recommend():
                 research_info = get_semantic_scholar_details(papers)
                 
                 if not research_info or len(research_info) == 0:
+                    # Prepare messages for AI response
+                    ai_messages = [
+                        {"role": "system", "content": "You are a friendly and knowledgeable research assistant. The user asked for recent academic papers but none were found. Apologize and suggest they try a different search term."}
+                    ]
+                    
+                    # Add conversation history if available
+                    if conversation_context:
+                        ai_messages.extend(conversation_context[-5:])
+                    
+                    # Add current context
+                    ai_messages.append({"role": "user", "content": f"User request: {user_input}\n No research papers were found for this query. Please suggest alternative search terms."})
+
                     ai_response = openai.ChatCompletion.create(
                         model="gpt-4o-mini",
-                        messages=[
-                            {"role": "system", "content": "You are a friendly and knowledgeable research assistant. The user asked for recent academic papers but none were found. Apologize and suggest they try a different search term."},
-                            {"role": "user", "content": f"User request: {user_input}\n No research papers were found for this query. Please suggest alternative search terms."}
-                        ],
+                        messages=ai_messages,
                         max_tokens=150,
                         temperature=0.7
                     ).choices[0].message['content']
@@ -592,12 +622,21 @@ def recommend():
                         'response_type': 'TEXT'
                     })
                 
+                # Prepare messages for AI response
+                ai_messages = [
+                    {"role": "system", "content": "You are a friendly and knowledgeable research assistant. Respond naturally about recent academic research. Keep responses concise (1-2 sentences) and conversational."}
+                ]
+                
+                # Add conversation history if available
+                if conversation_context:
+                    ai_messages.extend(conversation_context[-5:])
+                
+                # Add current context and research
+                ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Research Info: {research_info}\n You are a friendly and knowledgeable research assistant. Respond naturally about the recent academic papers you found. Keep responses to 1-2 sentences and conversational. Don't list the papers unless the user specifically asked about them."})
+
                 ai_response = openai.ChatCompletion.create(
                     model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "You are a friendly and knowledgeable research assistant. Respond naturally about recent academic research. Keep responses concise (1-2 sentences) and conversational."},
-                        {"role": "user", "content": f"User request: {user_input}\n Research Info: {research_info}\n You are a friendly and knowledgeable research assistant. Respond naturally about the recent academic papers you found. Keep responses to 1-2 sentences and conversational. Don't list the papers unless the user specifically asked about them."}
-                    ],
+                    messages=ai_messages,
                     max_tokens=150,
                     temperature=0.7
                 ).choices[0].message['content']
@@ -614,12 +653,21 @@ def recommend():
                 research_results = search_internet_archive(user_input, max_results=max_results)
                 research_info = get_research_details(research_results)
                 
+                # Prepare messages for AI response
+                ai_messages = [
+                    {"role": "system", "content": "You are a friendly research assistant. The user asked for recent papers but we had to use archive sources instead. Acknowledge this while being helpful."}
+                ]
+                
+                # Add conversation history if available
+                if conversation_context:
+                    ai_messages.extend(conversation_context[-5:])
+                
+                # Add current context
+                ai_messages.append({"role": "user", "content": f"User request: {user_input}\n We couldn't find recent papers, but found some archive documents instead. Mention this politely and briefly describe what you found."})
+
                 ai_response = openai.ChatCompletion.create(
                     model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "You are a friendly research assistant. The user asked for recent papers but we had to use archive sources instead. Acknowledge this while being helpful."},
-                        {"role": "user", "content": f"User request: {user_input}\n We couldn't find recent papers, but found some archive documents instead. Mention this politely and briefly describe what you found."}
-                    ],
+                    messages=ai_messages,
                     max_tokens=150,
                     temperature=0.7
                 ).choices[0].message['content']
@@ -634,12 +682,21 @@ def recommend():
             research_results = search_internet_archive(user_input, max_results=max_results)
             research_info = get_research_details(research_results)
             
+            # Prepare messages for AI response
+            ai_messages = [
+                {"role": "system", "content": "You are a friendly and knowledgeable research assistant specializing in historical documents and older research. Respond naturally to the user's request. Keep responses concise (1-2 sentences) and conversational."}
+            ]
+            
+            # Add conversation history if available
+            if conversation_context:
+                ai_messages.extend(conversation_context[-5:])
+            
+            # Add current context and research
+            ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Research Info: {research_info}\n You are a friendly and knowledgeable research assistant. Respond naturally about the archived academic papers and historical documents you found. Keep responses to 1-2 sentences and conversational. Don't list the papers unless the user specifically asked about them."})
+
             ai_response = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "You are a friendly and knowledgeable research assistant specializing in historical documents and older research. Respond naturally to the user's request. Keep responses concise (1-2 sentences) and conversational."},
-                    {"role": "user", "content": f"User request: {user_input}\n Research Info: {research_info}\n You are a friendly and knowledgeable research assistant. Respond naturally about the archived academic papers and historical documents you found. Keep responses to 1-2 sentences and conversational. Don't list the papers unless the user specifically asked about them."}
-                ],
+                messages=ai_messages,
                 max_tokens=150,
                 temperature=0.7
             ).choices[0].message['content']
@@ -650,18 +707,27 @@ def recommend():
                 'response_type': 'RESEARCH_ARCHIVE'
             })
         else:
+            # Prepare messages for AI general response
+            ai_messages = [
+                {"role": "system", "content": """You are a friendly and knowledgeable book and research assistant. You can help with:
+                - Questions about books, authors, and reading in general
+                - Information about academic research and scholarly content
+                - Literary concepts and terminology
+                - Reading recommendations (but don't give specific titles unless asked)
+                - Book-related advice
+                Keep responses helpful and concise."""}
+            ]
+            
+            # Add conversation history if available
+            if conversation_context:
+                ai_messages.extend(conversation_context[-5:])
+            
+            # Add current user query
+            ai_messages.append({"role": "user", "content": user_input})
+
             ai_response = openai.ChatCompletion.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": """You are a friendly and knowledgeable book and research assistant. You can help with:
-                    - Questions about books, authors, and reading in general
-                    - Information about academic research and scholarly content
-                    - Literary concepts and terminology
-                    - Reading recommendations (but don't give specific titles unless asked)
-                    - Book-related advice
-                    Keep responses helpful and concise."""},
-                    {"role": "user", "content": user_input}
-                ],
+                messages=ai_messages,
                 max_tokens=250,
                 temperature=0.7
             ).choices[0].message['content']
