@@ -169,9 +169,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 datasets: [{
                     data: statusData,
                     backgroundColor: [
-                        '#F6AD55', // Orange for Reading
+                        '#bee3f8', // Orange for Reading
                         '#63B3ED', // Blue for To Read
-                        '#68D391'  // Green for Finished
+                        '#4a90e2'  // Green for Finished
                     ],
                     borderWidth: 1
                 }]
@@ -230,8 +230,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     datasets: [{
                         data: [totalPagesLeft, totalPagesRead],
                         backgroundColor: [
-                            '#FC8181',  // Red for Pages Left
-                            '#68D391'   // Green for Pages Read
+                            '#bee3f8',  // Red for Pages Left
+                            '#4a90e2'   // Green for Pages Read
                         ],
                         borderWidth: 1
                     }]

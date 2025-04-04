@@ -918,6 +918,24 @@ textarea.form-input {
     font-size: 0.9em;
 }
 
+/* Consolidate your error message styles to one definition */
+.error-message {
+    position: fixed;
+    bottom: 30px;         /* Position at bottom */
+    right: 30px;          /* Position at right */
+    background-color: #f44336;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out, fadeOut 0.3s ease-in 2.7s forwards;
+    max-width: 350px;
+}
+
 .search-loading,
 .search-empty,
 .search-error {

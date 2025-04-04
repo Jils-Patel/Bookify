@@ -135,11 +135,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="chat-item-title">${chat.title}</div>
                 <div class="chat-item-preview">${preview}</div>
             </div>
-            <div class="chat-item-actions">
+            <!--<div class="chat-item-actions">
                 <button class="chat-item-delete" onclick="event.stopPropagation(); deleteChatById('${chat.id}')">
                     <i class="fas fa-trash"></i>
                 </button>
-            </div>
+            </div> -->
         `;
         
         // Check if this is the active chat
@@ -203,44 +203,309 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Rename the current chat
     function renameCurrentChat() {
         if (!currentChatId) return;
         
         const chat = chats.find(c => c.id === currentChatId);
         if (!chat) return;
         
-        const newTitle = prompt('Enter a new name for this conversation:', chat.title);
-        if (!newTitle || newTitle === chat.title) return;
+        // Create modal elements
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+        modalOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        `;
         
-        db.collection('Chats').doc(currentChatId)
-            .update({
-                title: newTitle,
-                updated_at: firebase.firestore.Timestamp.now()
-            })
-            .then(() => {
-                // Update local data
-                chat.title = newTitle;
-                currentChatTitle.textContent = newTitle;
-                
-                // Update the sidebar item
-                const chatItem = document.querySelector(`.chat-item[data-id="${currentChatId}"] .chat-item-title`);
-                if (chatItem) {
-                    chatItem.textContent = newTitle;
-                }
-            })
-            .catch((error) => {
-                console.error('Error renaming chat:', error);
-                showErrorMessage('Failed to rename conversation');
-            });
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content';
+        modalContent.style.cssText = `
+            background-color: white;
+            border-radius: 8px;
+            padding: 24px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        `;
+        
+        const modalHeader = document.createElement('h3');
+        modalHeader.textContent = 'Rename Conversation';
+        modalHeader.style.cssText = `
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: black;
+            font-size: 18px;
+            font-weight: 600;
+        `;
+        
+        const modalInput = document.createElement('input');
+        modalInput.type = 'text';
+        modalInput.value = chat.title;
+        modalInput.style.cssText = `
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            box-sizing: border-box;
+            outline: none;
+        `;
+        modalInput.addEventListener('focus', () => {
+            modalInput.style.borderColor = '#4a90e2';
+        });
+        modalInput.addEventListener('blur', () => {
+            modalInput.style.borderColor = '#e0e0e0';
+        });
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        `;
+        
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.style.cssText = `
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background-color: white;
+            color: black;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        `;
+        cancelButton.addEventListener('mouseover', () => {
+            cancelButton.style.backgroundColor = '#f5f5f5';
+        });
+        cancelButton.addEventListener('mouseout', () => {
+            cancelButton.style.backgroundColor = 'white';
+        });
+        
+        const saveButton = document.createElement('button');
+        saveButton.textContent = 'Save';
+        saveButton.style.cssText = `
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4a90e2;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        `;
+        saveButton.addEventListener('mouseover', () => {
+            saveButton.style.backgroundColor = '#3a80d2';
+        });
+        saveButton.addEventListener('mouseout', () => {
+            saveButton.style.backgroundColor = '#4a90e2';
+        });
+        
+        // Assemble modal
+        buttonContainer.appendChild(cancelButton);
+        buttonContainer.appendChild(saveButton);
+        
+        modalContent.appendChild(modalHeader);
+        modalContent.appendChild(modalInput);
+        modalContent.appendChild(buttonContainer);
+        
+        modalOverlay.appendChild(modalContent);
+        document.body.appendChild(modalOverlay);
+        
+        // Focus input after modal is shown
+        setTimeout(() => modalInput.focus(), 100);
+        
+        // Handle input events
+        modalInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                saveNewTitle();
+            } else if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+        
+        // Handle button events
+        cancelButton.addEventListener('click', closeModal);
+        saveButton.addEventListener('click', saveNewTitle);
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                closeModal();
+            }
+        });
+        
+        function closeModal() {
+            document.body.removeChild(modalOverlay);
+        }
+        
+        function saveNewTitle() {
+            const newTitle = modalInput.value.trim();
+            closeModal();
+            
+            if (!newTitle || newTitle === chat.title) return;
+            
+            db.collection('Chats').doc(currentChatId)
+                .update({
+                    title: newTitle,
+                    updated_at: firebase.firestore.Timestamp.now()
+                })
+                .then(() => {
+                    // Update local data
+                    chat.title = newTitle;
+                    currentChatTitle.textContent = newTitle;
+                    
+                    // Update the sidebar item
+                    const chatItem = document.querySelector(`.chat-item[data-id="${currentChatId}"] .chat-item-title`);
+                    if (chatItem) {
+                        chatItem.textContent = newTitle;
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error renaming chat:', error);
+                    showErrorMessage('Failed to rename conversation');
+                });
+        }
     }
     
-    // Prompt to delete the current chat
     function promptDeleteCurrentChat() {
         if (!currentChatId) return;
         
-        if (confirm('Are you sure you want to delete this conversation? This action cannot be undone.')) {
+        // Create modal elements
+        const modalOverlay = document.createElement('div');
+        modalOverlay.className = 'modal-overlay';
+        modalOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        `;
+        
+        const modalContent = document.createElement('div');
+        modalContent.className = 'modal-content';
+        modalContent.style.cssText = `
+            background-color: white;
+            border-radius: 8px;
+            padding: 24px;
+            width: 400px;
+            max-width: 90%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        `;
+        
+        const modalHeader = document.createElement('h3');
+        modalHeader.textContent = 'Delete Conversation';
+        modalHeader.style.cssText = `
+            margin-top: 0;
+            margin-bottom: 8px;
+            color: black;
+            font-size: 18px;
+            font-weight: 600;
+        `;
+        
+        const modalMessage = document.createElement('p');
+        modalMessage.textContent = 'Are you sure you want to delete this conversation? This action cannot be undone.';
+        modalMessage.style.cssText = `
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 14px;
+            line-height: 1.5;
+        `;
+        
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.cssText = `
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        `;
+        
+        const cancelButton = document.createElement('button');
+        cancelButton.textContent = 'Cancel';
+        cancelButton.style.cssText = `
+            padding: 8px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            background-color: white;
+            color: black;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        `;
+        cancelButton.addEventListener('mouseover', () => {
+            cancelButton.style.backgroundColor = '#f5f5f5';
+        });
+        cancelButton.addEventListener('mouseout', () => {
+            cancelButton.style.backgroundColor = 'white';
+        });
+        
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.style.cssText = `
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #ff4d4f;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        `;
+        deleteButton.addEventListener('mouseover', () => {
+            deleteButton.style.backgroundColor = '#ff3133';
+        });
+        deleteButton.addEventListener('mouseout', () => {
+            deleteButton.style.backgroundColor = '#ff4d4f';
+        });
+        
+        // Assemble modal
+        buttonContainer.appendChild(cancelButton);
+        buttonContainer.appendChild(deleteButton);
+        
+        modalContent.appendChild(modalHeader);
+        modalContent.appendChild(modalMessage);
+        modalContent.appendChild(buttonContainer);
+        
+        modalOverlay.appendChild(modalContent);
+        document.body.appendChild(modalOverlay);
+        
+        // Handle button events
+        cancelButton.addEventListener('click', closeModal);
+        deleteButton.addEventListener('click', () => {
+            closeModal();
             deleteChatById(currentChatId);
+        });
+        
+        // Close when clicking outside or pressing Escape
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) {
+                closeModal();
+            }
+        });
+        
+        document.addEventListener('keydown', handleKeyDown);
+        
+        function handleKeyDown(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        }
+        
+        function closeModal() {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.body.removeChild(modalOverlay);
         }
     }
     
