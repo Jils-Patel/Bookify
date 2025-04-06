@@ -9,10 +9,15 @@ import firebase_admin
 from firebase_admin import credentials, auth
 from firebase_admin import firestore
 import firebase_admin.firestore as firestore_utils
+from dotenv import load_dotenv
+
+# Load environment variables from .env file in development
+if os.path.exists('.env'):
+    load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = 'bookify_secret_key_change_in_production'  # Change this in production
-openai.api_key = "sk-None-tuMHMcLlpx1Jp9W58F6lT3BlbkFJJjoDDYpdxje8KdqwQy9a"
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', '')  # Get from environment variable
+openai.api_key = os.environ.get('OPENAI_API_KEY', '')  # Get from environment variable
 
 # Initialize Firebase Admin SDK
 if not firebase_admin._apps:
@@ -21,15 +26,15 @@ if not firebase_admin._apps:
     else:
         firebase_config = { #deployed
             "type": "service_account",
-            "project_id": "bookify-ee9d0",
-            "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID", ""),
-            "private_key": os.getenv("FIREBASE_PRIVATE_KEY", "").replace('\\n', '\n'),
-            "client_email": os.getenv("FIREBASE_CLIENT_EMAIL", ""),
-            "client_id": os.getenv("FIREBASE_CLIENT_ID", ""),
+            "project_id": os.environ.get("FIREBASE_PROJECT_ID", ""),
+            "private_key_id": os.environ.get("FIREBASE_PRIVATE_KEY_ID", ""),
+            "private_key": os.environ.get("FIREBASE_PRIVATE_KEY", "").replace('\\n', '\n'),
+            "client_email": os.environ.get("FIREBASE_CLIENT_EMAIL", ""),
+            "client_id": os.environ.get("FIREBASE_CLIENT_ID", ""),
             "auth_uri": "https://accounts.google.com/o/oauth2/auth",
             "token_uri": "https://oauth2.googleapis.com/token",
             "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-            "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_CERT_URL", "")
+            "client_x509_cert_url": os.environ.get("FIREBASE_CLIENT_CERT_URL", "")
         }
         cred = credentials.Certificate(firebase_config)
     
