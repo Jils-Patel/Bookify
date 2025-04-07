@@ -15,33 +15,55 @@
             color: #333;
         }
 
+        .privacy-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
         h2 {
             margin-top: 90px;
             text-align: left;
             color: #4299e1;
-            margin-left: 250px;
-            margin-right: 250px;
             margin-bottom: 20px;
+            padding: 0 20px;
         }
 
         h3 {
             margin-top: 30px;
             margin-bottom: 20px;
-            margin-left: 250px;
-            margin-right: 250px;
             color: #555;
+            padding: 0 20px;
         }
 
         p,
         ul {
-            margin-left: 250px;
-            margin-right: 250px;
             margin-bottom: 20px;
+            padding: 0 20px;
         }
 
         ul {
             list-style-type: disc;
             padding-left: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .privacy-container {
+                padding: 10px;
+            }
+
+            h2 {
+                margin-top: 70px;
+                font-size: 1.5rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            p, ul {
+                font-size: 0.95rem;
+            }
         }
     </style>
 </head>
@@ -92,51 +114,53 @@
 
     {% endif %}
 
-    <h2>Privacy Policy</h2>
+    <div class="privacy-container">
+        <h2>Privacy Policy</h2>
 
-    <p>Last Updated: April 3, 2025</p>
+        <p>Last Updated: April 3, 2025</p>
 
-    <p>Welcome to Bookify! This Privacy Policy explains how we collect, use, and share information when you use our application. By using Bookify, you agree to the terms of this policy.</p>
+        <p>Welcome to Bookify! This Privacy Policy explains how we collect, use, and share information when you use our application. By using Bookify, you agree to the terms of this policy.</p>
 
-    <h3>1. Information We Collect</h3>
+        <h3>1. Information We Collect</h3>
 
-    <h3>1.1. Information You Provide</h3>
-    <p>We collect information you provide directly to us, such as your Google account information (e.g., email address) when you sign in. We collect content you create or submit through the app, including chat history, book details, and preferences.</p>
+        <h3>1.1. Information You Provide</h3>
+        <p>We collect information you provide directly to us, such as your Google account information (e.g., email address) when you sign in. We collect content you create or submit through the app, including chat history, book details, and preferences.</p>
 
-    <h3>1.2. Automatically Collected Information</h3>
-    <p>We may automatically collect certain information when you use Bookify, including usage data, such as how you interact with the app. We collect device information, such as your device type and operating system. We collect log data, such as IP addresses and access times.</p>
+        <h3>1.2. Automatically Collected Information</h3>
+        <p>We may automatically collect certain information when you use Bookify, including usage data, such as how you interact with the app. We collect device information, such as your device type and operating system. We collect log data, such as IP addresses and access times.</p>
 
-    <h3>2. How We Use Your Information</h3>
+        <h3>2. How We Use Your Information</h3>
 
-    <p>We use your information to provide, maintain, and improve Bookify. We use your information to personalize your experience and provide recommendations. We use your information to communicate with you about updates and features. We use your information to monitor and analyze usage and trends. We use your information to detect, prevent, and address technical issues.</p>
+        <p>We use your information to provide, maintain, and improve Bookify. We use your information to personalize your experience and provide recommendations. We use your information to communicate with you about updates and features. We use your information to monitor and analyze usage and trends. We use your information to detect, prevent, and address technical issues.</p>
 
-    <h3>3. Sharing Your Information</h3>
+        <h3>3. Sharing Your Information</h3>
 
-    <p>We do not sell, trade, or otherwise transfer your personal information to outside parties, except as required by law or for essential services like website hosting and analytics. Any third parties assisting us are required to keep your information confidential.</p>
+        <p>We do not sell, trade, or otherwise transfer your personal information to outside parties, except as required by law or for essential services like website hosting and analytics. Any third parties assisting us are required to keep your information confidential.</p>
 
-    <h3>4. Data Security</h3>
+        <h3>4. Data Security</h3>
 
-    <p>We implement appropriate security measures to protect your personal information. However, no method of transmission over the Internet is 100% secure. While we strive to protect your data, we cannot guarantee absolute security.</p>
+        <p>We implement appropriate security measures to protect your personal information. However, no method of transmission over the Internet is 100% secure. While we strive to protect your data, we cannot guarantee absolute security.</p>
 
-    <h3>5. Data Retention</h3>
+        <h3>5. Data Retention</h3>
 
-    <p>We retain your information for as long as necessary to provide you with Bookify and as needed for legal or business purposes.</p>
+        <p>We retain your information for as long as necessary to provide you with Bookify and as needed for legal or business purposes.</p>
 
-    <h3>6. Your Choices</h3>
+        <h3>6. Your Choices</h3>
 
-    <p>You can access, update, or delete your information within the application. You can disable certain data collection features in your device settings. You can request deletion of your account.</p>
+        <p>You can access, update, or delete your information within the application. You can disable certain data collection features in your device settings. You can request deletion of your account.</p>
 
-    <h3>7. Children's Privacy</h3>
+        <h3>7. Children's Privacy</h3>
 
-    <p>Bookify is not intended for children under 13. We do not knowingly collect personal information from children under this age. If we become aware that a child under 13 has provided us with personal information, we will take steps to delete such information.</p>
+        <p>Bookify is not intended for children under 13. We do not knowingly collect personal information from children under this age. If we become aware that a child under 13 has provided us with personal information, we will take steps to delete such information.</p>
 
-    <h3>8. Changes to This Privacy Policy</h3>
+        <h3>8. Changes to This Privacy Policy</h3>
 
-    <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page. Your continued use of Bookify after any changes constitutes your acceptance of the new policy.</p>
+        <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page. Your continued use of Bookify after any changes constitutes your acceptance of the new policy.</p>
 
-    <h3>9. Contact Us</h3>
+        <h3>9. Contact Us</h3>
 
-    <p>If you have any questions about this Privacy Policy, please contact us at support@bookify.com.</p>
+        <p>If you have any questions about this Privacy Policy, please contact us at support@bookify.com.</p>
+    </div>
 
     <footer class="home-footer">
         <p class="footer-simple">&copy; 2025 Bookify. All Rights Reserved - <a href="/terms">Terms & Conditions</a> -

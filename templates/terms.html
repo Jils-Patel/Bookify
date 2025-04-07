@@ -15,33 +15,55 @@
             color: #333;
         }
 
+        .terms-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
         h2 {
             margin-top: 90px;
             text-align: left;
             color: #4299e1;
-            margin-left: 250px;
-            margin-right: 250px;
             margin-bottom: 20px;
+            padding: 0 20px;
         }
 
         h3 {
             margin-top: 30px;
             margin-bottom: 20px;
-            margin-left: 250px;
-            margin-right: 250px;
             color: #555;
+            padding: 0 20px;
         }
 
         p,
         ul {
-            margin-left: 250px;
-            margin-right: 250px;
             margin-bottom: 20px;
+            padding: 0 20px;
         }
 
         ul {
             list-style-type: disc;
             padding-left: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .terms-container {
+                padding: 10px;
+            }
+
+            h2 {
+                margin-top: 70px;
+                font-size: 1.5rem;
+            }
+
+            h3 {
+                font-size: 1.2rem;
+            }
+
+            p, ul {
+                font-size: 0.95rem;
+            }
         }
     </style>
 </head>
@@ -92,59 +114,60 @@
 
     {% endif %}
 
-    <h2>Terms and Conditions</h2>
+    <div class="terms-container">
+        <h2>Terms and Conditions</h2>
 
-    <p>Last Updated: April 3, 2025</p>
+        <p>Last Updated: April 3, 2025</p>
 
-    <p>Welcome to Bookify! By using our application, you agree to comply with and be bound by the following Terms and Conditions. Please read them carefully.</p>
+        <p>Welcome to Bookify! By using our application, you agree to comply with and be bound by the following Terms and Conditions. Please read them carefully.</p>
 
-    <h3>1. Description of Service</h3>
-    <p>Bookify provides an AI-powered recommendation service for books, research papers, and other materials. Users may sign in with an email to access their Dashboard, AI Assistant, Quick Search, Book Tracker, and additional features to get recommendations on materials or track progress.</p>
+        <h3>1. Description of Service</h3>
+        <p>Bookify provides an AI-powered recommendation service for books, research papers, and other materials. Users may sign in with an email to access their Dashboard, AI Assistant, Quick Search, Book Tracker, and additional features to get recommendations on materials or track progress.</p>
 
-    <h3>2. User Accounts and Authentication</h3>
-    <p>Bookify uses Google Account authentication. By using this feature, you grant us permission to access certain information from your Google account as necessary for the operation of the application. You are responsible for maintaining the confidentiality of your account credentials.</p>
+        <h3>2. User Accounts and Authentication</h3>
+        <p>Bookify uses Google Account authentication. By using this feature, you grant us permission to access certain information from your Google account as necessary for the operation of the application. You are responsible for maintaining the confidentiality of your account credentials.</p>
 
-    <p>Bookify stores user data such as email, chat history, book details within collections, and setting preferences. The AI recommendations provided by Bookify are based on algorithms and data analysis. While we strive to provide accurate and relevant recommendations, we do not guarantee the accuracy, completeness, or suitability of the recommended materials. Users are responsible for evaluating the recommendations and making their own informed decisions. We are committed to protecting your privacy. Please refer to our Privacy Policy for detailed information on how we collect, use, and protect data.</p>
+        <p>Bookify stores user data such as email, chat history, book details within collections, and setting preferences. The AI recommendations provided by Bookify are based on algorithms and data analysis. While we strive to provide accurate and relevant recommendations, we do not guarantee the accuracy, completeness, or suitability of the recommended materials. Users are responsible for evaluating the recommendations and making their own informed decisions. We are committed to protecting your privacy. Please refer to our Privacy Policy for detailed information on how we collect, use, and protect data.</p>
 
-    <h3>3. User Conduct</h3>
-    <p>You agree not to use Bookify for any illegal or unauthorized purpose. You agree not to attempt to interfere with or disrupt the operation of Bookify. You agree not to upload or transmit any malicious code, viruses, or other harmful content. You agree not to violate the intellectual property rights of others. You agree not to attempt to gain unauthorized access to any part of Bookify or its systems.</p>
+        <h3>3. User Conduct</h3>
+        <p>You agree not to use Bookify for any illegal or unauthorized purpose. You agree not to attempt to interfere with or disrupt the operation of Bookify. You agree not to upload or transmit any malicious code, viruses, or other harmful content. You agree not to violate the intellectual property rights of others. You agree not to attempt to gain unauthorized access to any part of Bookify or its systems.</p>
 
-    <h3>4. User-Generated Content</h3>
-    <p>Users may contribute content, such as new books, to Bookify. You are responsible for the content you post and ensure it does not violate any laws or infringe on others' rights. We reserve the right to remove any content that violates these terms.</p>
+        <h3>4. User-Generated Content</h3>
+        <p>Users may contribute content, such as new books, to Bookify. You are responsible for the content you post and ensure it does not violate any laws or infringe on others' rights. We reserve the right to remove any content that violates these terms.</p>
 
-    <h3>5. Privacy</h3>
-    <p>Your privacy is important to Bookify. We collect personal information such as your email address, if provided, to store any data related to your Bookify account. By using our service, you agree to our Privacy Policy.</p>
+        <h3>5. Privacy</h3>
+        <p>Your privacy is important to Bookify. We collect personal information such as your email address, if provided, to store any data related to your Bookify account. By using our service, you agree to our Privacy Policy.</p>
 
-    <h3>6. Content Guidelines</h3>
-    <p>You agree not to post content that is illegal, harmful, threatening, abusive, harassing, defamatory, vulgar, obscene, invasive of another's privacy, hateful, or racially, ethnically, or otherwise objectionable.</p>
+        <h3>6. Content Guidelines</h3>
+        <p>You agree not to post content that is illegal, harmful, threatening, abusive, harassing, defamatory, vulgar, obscene, invasive of another's privacy, hateful, or racially, ethnically, or otherwise objectionable.</p>
 
-    <h3>7. Copyright Infringement & DMCA Policy</h3>
-    <p>We respect intellectual property rights. If you believe your copyrighted work has been infringed, please provide us with a DMCA notice containing the necessary information for us to investigate and take action.</p>
+        <h3>7. Copyright Infringement & DMCA Policy</h3>
+        <p>We respect intellectual property rights. If you believe your copyrighted work has been infringed, please provide us with a DMCA notice containing the necessary information for us to investigate and take action.</p>
 
-    <h3>8. Liability Waiver for Third-Party Copyright Claims</h3>
-    <p>You agree to indemnify and hold Bookify harmless from any claims arising from third-party copyright infringement related to your user-generated content.</p>
+        <h3>8. Liability Waiver for Third-Party Copyright Claims</h3>
+        <p>You agree to indemnify and hold Bookify harmless from any claims arising from third-party copyright infringement related to your user-generated content.</p>
 
-    <h3>9. Age Requirement</h3>
-    <p>By using Bookify, you confirm that you are at least 18 years of age, or, if you are under 18, you have obtained parental consent to use our service.</p>
+        <h3>9. Age Requirement</h3>
+        <p>By using Bookify, you confirm that you are at least 18 years of age, or, if you are under 18, you have obtained parental consent to use our service.</p>
 
-    <h3>10. Dispute Resolution</h3>
-    <p>In the event of disputes or complaints regarding content on Bookify, the admin will review and take appropriate action. We encourage users to report inappropriate content.</p>
+        <h3>10. Dispute Resolution</h3>
+        <p>In the event of disputes or complaints regarding content on Bookify, the admin will review and take appropriate action. We encourage users to report inappropriate content.</p>
 
-    <h3>11. Limitation of Liability</h3>
-    <p>Bookify is provided "as is." We are not liable for any direct, indirect, incidental, consequential, or punitive damages arising from your use of the app.</p>
+        <h3>11. Limitation of Liability</h3>
+        <p>Bookify is provided "as is." We are not liable for any direct, indirect, incidental, consequential, or punitive damages arising from your use of the app.</p>
 
-    <h3>12. Termination of Accounts</h3>
-    <p>We reserve the right to terminate or suspend your account for violations of these Terms or for any other reason at our discretion.</p>
+        <h3>12. Termination of Accounts</h3>
+        <p>We reserve the right to terminate or suspend your account for violations of these Terms or for any other reason at our discretion.</p>
 
-    <h3>13. Modifications to Terms</h3>
-    <p>We may modify these Terms at any time. We will notify you of changes by posting the updated terms on this page. Your continued use of Bookify constitutes acceptance of the new Terms.</p>
+        <h3>13. Modifications to Terms</h3>
+        <p>We may modify these Terms at any time. We will notify you of changes by posting the updated terms on this page. Your continued use of Bookify constitutes acceptance of the new Terms.</p>
 
-    <h3>14. Governing Law</h3>
-    <p>These Terms are governed by the laws of your jurisdiction, without regard to its conflict of law principles.</p>
+        <h3>14. Governing Law</h3>
+        <p>These Terms are governed by the laws of your jurisdiction, without regard to its conflict of law principles.</p>
 
-    <h3>15. Contact Us</h3>
-    <p>If you have any questions or concerns about these Terms, please contact us at support@bookify.com.</p>
-
+        <h3>15. Contact Us</h3>
+        <p>If you have any questions or concerns about these Terms, please contact us at support@bookify.com.</p>
+    </div>
 
     <footer class="home-footer">
         <p class="footer-simple">&copy; 2025 Bookify. All Rights Reserved - <a href="/terms">Terms & Conditions</a> -

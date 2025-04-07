@@ -110,55 +110,187 @@
                 
                 <!-- Features Section -->
                 <section id="features" class="features-section">
-                    <div class="container">
-                        <h2 class="section-title">Features</h2>
-                        <div class="features-grid">
-                            <div class="feature-card-img">
-                                <div class="feature-img">
-                                    <img src="{{ url_for('static', filename='images/ai-assistant.jpg') }}" alt="AI Assistant">
-                                </div>
-                                <h3 class="feature-title">AI Assistant</h3>
-                                <p class="feature-desc">Get personalized book recommendations based on your preferences and reading history. Our AI understands your tastes and suggests books you'll love.</p>
+                    <h2 class="section-title">Features</h2>
+                    
+                    <!-- Dashboard Group -->
+                    <div class="feature-group">
+                        <h3 class="feature-group-title">Personalized Dashboard</h3>
+                        <div class="feature-row">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/dashboard1.png') }}" alt="Dashboard Overview">
                             </div>
-                            <div class="feature-card-img">
-                                <div class="feature-img">
-                                    <img src="{{ url_for('static', filename='images/quick-search.jpg') }}" alt="Quick Search">
-                                </div>
-                                <h3 class="feature-title">Quick Search</h3>
-                                <p class="feature-desc">Find books, authors, and research papers instantly with our powerful search tools that connect you to multiple sources and databases.</p>
+                            <div class="feature-content">
+                                <h4>Reading Analytics</h4>
+                                <p>Get a personalized overview of your reading journey through your very own dashboard! Track your reading metrics and visualize progress to achieve your goals!</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Reading Statistics</li>
+                                    <li><i class="fas fa-check-circle"></i> Visualize Progress</li>
+                                    <li><i class="fas fa-check-circle"></i> Goal Tracking</li>
+                                </ul>
                             </div>
-                            <div class="feature-card-img">
-                                <div class="feature-img">
-                                    <img src="{{ url_for('static', filename='images/book-tracker.jpg') }}" alt="Book Tracker">
-                                </div>
-                                <h3 class="feature-title">Book Tracker</h3>
-                                <p class="feature-desc">Organize your personal library, track reading progress, set goals, and keep a detailed record of all your reading activities in one place.</p>
+                        </div>
+                        <div class="feature-row reverse">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/dashboard2.png') }}" alt="Dashboard Statistics">
                             </div>
-                            <div class="feature-card-img">
-                                <div class="feature-img">
-                                    <img src="{{ url_for('static', filename='images/digital-library.jpg') }}" alt="Digital Library">
-                                </div>
-                                <h3 class="feature-title">Digital Library</h3>
-                                <p class="feature-desc">Access a vast collection of e-books, audio books, and digital resources from various platforms and libraries all through one interface.</p>
+                            <div class="feature-content">
+                                <h4>Personalized Recommendations</h4>
+                                <p>Discover books uniquely tailored to your taste and reading preferences! Our AI learns what you love by recognizing your collection and reading preferences in settings to curate suggestions that evolve with your reading habits!</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Recommended Books</li>
+                                    <li><i class="fas fa-check-circle"></i> Matching Your Reading Preferences</li>
+                                    <li><i class="fas fa-check-circle"></i> Adaptive Learning to Your Reading Style</li>
+                                </ul>
                             </div>
-                            <div class="feature-card-img">
-                                <div class="feature-img">
-                                    <img src="{{ url_for('static', filename='images/research-papers.jpg') }}" alt="Research Papers">
-                                </div>
-                                <h3 class="feature-title">Research Papers</h3>
-                                <p class="feature-desc">Discover the latest academic papers and research publications in your field of interest with our specialized research search tools.</p>
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/dashboard3.png') }}" alt="Recent Activity">
                             </div>
-                            <div class="feature-card-img">
-                                <div class="feature-img">
-                                    <img src="{{ url_for('static', filename='images/reading-stats.jpg') }}" alt="Reading Statistics">
-                                </div>
-                                <h3 class="feature-title">Reading Stats</h3>
-                                <p class="feature-desc">Visualize your reading habits with beautiful charts and analytics that help you understand your preferences and reading patterns.</p>
+                            <div class="feature-content">
+                                <h4>Activity Tracking</h4>
+                                <p>Stay updated with your recent reading activities, including books you've started, completed, or added to your collection. Track your reading journey in real-time.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Real-Time Activity Updates</li>
+                                    <li><i class="fas fa-check-circle"></i> Recent Progress</li>
+                                    <li><i class="fas fa-check-circle"></i> Snapshot of Latest Reads</li>
+                                </ul>
                             </div>
                         </div>
                     </div>
+    
+                    <!-- AI Assistant Group -->
+                    <div class="feature-group">
+                        <h3 class="feature-group-title">AI-Powered Assistant</h3>
+                        <div class="feature-row reverse">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/ai-assistant.png') }}" alt="AI Book Assistant">
+                            </div>
+                            <div class="feature-content">
+                                <h4>Smart Book Recommendations</h4>
+                                <p>Chat with our AI assistant to discover your next favorite book. Get personalized recommendations based on your interests, mood, or specific preferences.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Natural Language Conversations</li>
+                                    <li><i class="fas fa-check-circle"></i> Insightful Recommendations</li>
+                                    <li><i class="fas fa-check-circle"></i> Exploration & Discovery</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/ai-assistant-research.png') }}" alt="AI Research Assistant">
+                            </div>
+                            <div class="feature-content">
+                                <h4>Research Paper Recommendations</h4>
+                                <p>Find relevant research papers and academic content with our specialized AI assistant. Get summaries, key findings, and access to full papers.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Context-Aware Suggestions</li>
+                                    <li><i class="fas fa-check-circle"></i> Tailored To Your Research Interests</li>
+                                    <li><i class="fas fa-check-circle"></i> Recent Research & Discovery</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Quick Search Group -->
+                    <div class="feature-group">
+                        <h3 class="feature-group-title">Quick Search</h3>
+                        <div class="feature-row reverse">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/quicksearch1.png') }}" alt="Book Search">
+                            </div>
+                            <div class="feature-content">
+                                <h4>Instant Book Discovery</h4>
+                                <p>Search through millions of books with our powerful search engine. Find titles, authors, or topics instantly with advanced filtering options.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Smart Suggestions</li>
+                                    <li><i class="fas fa-check-circle"></i> Advanced Filtering Options</li>
+                                    <li><i class="fas fa-check-circle"></i> Cross-Platform Search</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/research2.png') }}" alt="Research Search">
+                            </div>
+                            <div class="feature-content">
+                                <h4>Academic Search</h4>
+                                <p>Find the research you need—fast. Our academic search lets you explore scholarly articles, authors, and topics with precision and accuracy.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Academic Database Access to Millions of Sources</li>
+                                    <li><i class="fas fa-check-circle"></i> Smart Filters & Suggestions</li>
+                                    <li><i class="fas fa-check-circle"></i> Top-Cited Works</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Detail Views Group -->
+                    <div class="feature-group">
+                        <h3 class="feature-group-title">Detailed Information</h3>
+                        <div class="feature-row reverse">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/quicksearch2.png') }}" alt="Book Details">
+                            </div>
+                            <div class="feature-content">
+                                <h4>Comprehensive Book Details</h4>
+                                <p>Get detailed information about any book, including title, author year, synopsis, and availability across different platforms.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Accurate Book Details</li>
+                                    <li><i class="fas fa-check-circle"></i> Quick Summary</li>
+                                    <li><i class="fas fa-check-circle"></i> Read or Buy Online</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/research3.png') }}" alt="Research Details">
+                            </div>
+                            <div class="feature-content">
+                                <h4>Research Paper Information</h4>
+                                <p>View comprehensive details about research papers across multiple reliable sources and platforms.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Precise Research Details</li>
+                                    <li><i class="fas fa-check-circle"></i> Read Online</li>
+                                    <li><i class="fas fa-check-circle"></i> Download PDF</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Tracker Group -->
+                    <div class="feature-group">
+                        <h3 class="feature-group-title">Reading Tracker</h3>
+                        <div class="feature-row reverse">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/track.png') }}" alt="Reading Tracker">
+                            </div>
+                            <div class="feature-content">
+                                <h4>Track Your Reading Journey</h4>
+                                <p>Keep track of your reading progress, set goals, and organize your personal library. Monitor your reading habits and achievements.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Track Reading Progress</li>
+                                    <li><i class="fas fa-check-circle"></i> Customize Your Collection</li>
+                                    <li><i class="fas fa-check-circle"></i> Set Reading Goals</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="feature-row">
+                            <div class="feature-screenshot">
+                                <img src="{{ url_for('static', filename='images/tracker2.png') }}" alt="Tracker Entry Details">
+                            </div>
+                            <div class="feature-content">
+                                <h4>Detailed Reading Notes</h4>
+                                <p>Take detailed notes, highlight important moments, and track your thoughts as you read. Keep all your reading insights in one place.</p>
+                                <ul class="feature-list">
+                                    <li><i class="fas fa-check-circle"></i> Take Notes</li>
+                                    <li><i class="fas fa-check-circle"></i> Track Progress</li>
+                                    <li><i class="fas fa-check-circle"></i> Reading Insights</li>
+                                </ul>
+                            </div>
+                            </div>
+                        </div>
                 </section>
-                
                 <!-- Pricing Section -->
                 <section id="pricing" class="pricing-section">
                     <div class="container">

@@ -477,55 +477,192 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Features Section */
+/* Features Section Styles */
 .features-section {
-    margin-top: 140px !important;
-    padding: 30px 0;
+    padding: 80px 20px;
+    background-color: #f8f9fa;
+    margin-top: 100px;
 }
 
-.features-grid {
+.section-subtitle {
+    text-align: center;
+    color: #666;
+    font-size: 1.2rem;
+    margin-bottom: 3rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.feature-group {
+    max-width: 1200px;
+    margin: 0 auto 80px;
+    padding: 0 20px;
+    margin-top: 40px;
+}
+
+.feature-group:last-child {
+    margin-bottom: 0;
+}
+
+.feature-group-title {
+    font-size: 1.8rem;
+    color: #4299e1;
+    margin-bottom: 2rem;
+    text-align: center;
+    font-weight: 600;
+}
+
+.feature-group-title:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background-color: #4299e1;
+}
+
+.feature-row {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 20px;
+    align-items: center;
+    gap: 40px;
+    margin-bottom: 60px;
 }
 
-.feature-card-img {
-    flex: 1 1 300px;
-    max-width: 100%;
-    min-width: 280px;
+.feature-row:last-child {
+    margin-bottom: 0;
 }
 
-.feature-img {
-    width: 100%;
-    height: 200px;
+.feature-row.reverse {
+    flex-direction: row-reverse;
+}
+
+.feature-screenshot {
+    flex: 1.2;
+    background: white;
+    border-radius: 12px;
     overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
 }
 
-.feature-img img {
+.feature-screenshot:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.feature-screenshot img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
+    display: block;
+    object-fit: contain;
+    max-height: none;
+    margin: 0 auto;
 }
 
-.feature-card-img:hover .feature-img img {
-    transform: scale(1.05);
+.screenshot-caption {
+    display: none;
 }
 
-.feature-card-img .feature-title {
-    font-size: 1.4rem;
-    margin: 20px 20px 10px;
-    font-weight: 600;
-    color: #000;
+.feature-content {
+    flex: 0.8;
+    padding: 20px;
 }
 
-.feature-card-img .feature-desc {
-    color: #555;
-    font-size: 1rem;
+.feature-content h4 {
+    font-size: 1.5rem;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.feature-content p {
+    font-size: 1.1rem;
     line-height: 1.6;
-    padding: 0 20px 25px;
-    flex-grow: 1;
+    color: #555;
+    margin-bottom: 20px;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.feature-list li {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 1rem;
+    color: #444;
+}
+
+.feature-list li i {
+    color: #4299e1;
+    margin-right: 10px;
+    font-size: 1.1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .feature-row {
+        flex-direction: column;
+        gap: 30px;
+    }
+
+    .feature-row.reverse {
+        flex-direction: column;
+    }
+
+    .feature-screenshot {
+        width: 100%;
+        min-height: 350px;
+    }
+
+    .feature-content {
+        text-align: center;
+    }
+
+    .feature-list {
+        display: inline-block;
+        text-align: left;
+        margin: 0 auto;
+    }
+
+    .feature-list li {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .features-section {
+        padding: 60px 20px;
+    }
+
+    .feature-group {
+        margin-bottom: 60px;
+    }
+
+    .feature-group-title {
+        font-size: 1.8rem;
+        margin-bottom: 30px;
+    }
+
+    .feature-screenshot {
+        min-height: 300px;
+    }
+
+    .feature-content h4 {
+        font-size: 1.3rem;
+    }
+
+    .feature-content p {
+        font-size: 1rem;
+    }
 }
 
 /* FAQ Section */
@@ -1103,5 +1240,48 @@ body:not(.app-layout) {
         width: 100%;
         max-width: 100%;
         margin-bottom: 30px;
+    }
+}
+
+/* Responsive styles for feature showcase */
+@media (max-width: 992px) {
+    .feature-showcase {
+        flex-direction: column;
+    }
+    
+    .feature-showcase.reverse {
+        flex-direction: column;
+    }
+    
+    .feature-image {
+        width: 100%;
+        margin-bottom: 30px;
+    }
+    
+    .feature-content {
+        width: 100%;
+    }
+    
+    .feature-list li {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 576px) {
+    .features-section {
+        padding: 40px 15px;
+    }
+    
+    .feature-showcase {
+        padding: 0 15px;
+        margin-bottom: 40px;
+    }
+    
+    .feature-content .feature-title {
+        font-size: 1.5rem;
+    }
+    
+    .feature-content .feature-desc {
+        font-size: 1rem;
     }
 }
