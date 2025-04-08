@@ -10,13 +10,18 @@ from firebase_admin import credentials, auth
 from firebase_admin import firestore
 import firebase_admin.firestore as firestore_utils
 from dotenv import load_dotenv
+import stripe
 
 # Load environment variables from .env file in development
 if os.path.exists('.env'):
     load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', '')  # Get from environment variable
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-here')
+
+# Add Stripe publishable key to app config
+app.config['STRIPE_PUBLISHABLE_KEY'] = os.environ.get('STRIPE_PUBLISHABLE_KEY')
+
 openai.api_key = os.environ.get('OPENAI_API_KEY', '')  # Get from environment variable
 
 # Initialize Firebase Admin SDK
@@ -42,6 +47,14 @@ if not firebase_admin._apps:
 
 db = firestore.client()
 
+# Initialize Stripe
+stripe.api_key = os.environ.get('STRIPE_SECRET_KEY', '')
+
+# Stripe webhook secret for verifying webhook events
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+
+# Subscription price IDs
+SUBSCRIPTION_PRICE_ID = os.environ.get('STRIPE_PRICE_ID', '')
 
 def login_required(f):
     @wraps(f)
@@ -1039,6 +1052,86 @@ def update_settings():
     except Exception as e:
         print(f"Error in update_settings: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+@app.route('/create-checkout-session', methods=['POST'])
+@login_required
+def create_checkout_session():
+    try:
+        # Create Stripe checkout session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price': SUBSCRIPTION_PRICE_ID,
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url=request.host_url + 'payment-success?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=request.host_url + 'payment-cancelled',
+            client_reference_id=session['user']['uid'],
+        )
+        return jsonify({'sessionId': checkout_session.id})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/payment-success')
+@login_required
+def payment_success():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        return redirect(url_for('index'))
+    
+    try:
+        # Retrieve the checkout session
+        checkout_session = stripe.checkout.Session.retrieve(session_id)
+        
+        # Update user's subscription status in Firestore
+        user_ref = db.collection('users').document(session['user']['uid'])
+        user_ref.update({
+            'subscription_status': 'active',
+            'stripe_customer_id': checkout_session.customer,
+            'subscription_id': checkout_session.subscription,
+        })
+        
+        flash('Your subscription has been activated successfully!', 'success')
+        return redirect(url_for('index'))
+    except Exception as e:
+        flash('There was an error processing your payment. Please contact support.', 'error')
+        return redirect(url_for('index'))
+
+@app.route('/webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except ValueError as e:
+        return 'Invalid payload', 400
+    except stripe.error.SignatureVerificationError as e:
+        return 'Invalid signature', 400
+
+    # Handle the event
+    if event['type'] == 'customer.subscription.deleted':
+        subscription = event['data']['object']
+        # Update user's subscription status in Firestore
+        users = db.collection('users').where('subscription_id', '==', subscription.id).get()
+        for user in users:
+            user.reference.update({
+                'subscription_status': 'inactive',
+                'subscription_id': None
+            })
+    elif event['type'] == 'customer.subscription.updated':
+        subscription = event['data']['object']
+        if subscription.status == 'active':
+            users = db.collection('users').where('subscription_id', '==', subscription.id).get()
+            for user in users:
+                user.reference.update({
+                    'subscription_status': 'active'
+                })
+
+    return jsonify({'status': 'success'})
 
 if __name__ == '__main__':
     app.run(debug=True)

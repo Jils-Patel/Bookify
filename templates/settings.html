@@ -153,7 +153,13 @@
         <!-- Firebase Config -->
         <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
         
+        <!-- Stripe.js -->
+        <script src="https://js.stripe.com/v3/"></script>
+        
         <script>
+            // Initialize Stripe
+            const stripe = Stripe('{{ config.STRIPE_PUBLISHABLE_KEY }}');
+            
             // Toggle the side navbar on mobile
             document.getElementById('menuToggle').addEventListener('click', function() {
                 document.getElementById('sideNavbar').classList.add('active');
@@ -192,51 +198,71 @@
             });
             
             // Save plan button
-            document.getElementById('savePlanBtn').addEventListener('click', function() {
+            document.getElementById('savePlanBtn').addEventListener('click', async function() {
                 const selectedPlan = document.querySelector('.plan-option.selected').getAttribute('data-plan');
-                let planName, planPrice, planFeatures;
                 
-                switch(selectedPlan) {
-                    case 'free':
-                        planName = 'Free Plan';
-                        planPrice = '$0/month';
-                        planFeatures = [
-                            '<i class="fas fa-check-circle"></i> <b>5</b>&nbsp;AI Queries Daily',
-                            '<i class="fas fa-check-circle"></i> Top&nbsp;<b>5</b>&nbsp;Results for Quick Search',
-                            '<i class="fas fa-check-circle"></i> Track up to&nbsp;<b>5</b>&nbsp;Books',
-                            '<i class="fas fa-check-circle"></i> <b>Limited</b>&nbsp;Archive and Research'
-                        ];
-                        break;
-                    case 'pro':
-                        planName = 'Pro Plan';
-                        planPrice = '$1.99/month';
-                        planFeatures = [
-                            '<i class="fas fa-check-circle"></i> <b>Unlimited</b>&nbsp;AI Queries',
-                            '<i class="fas fa-check-circle"></i> Up to&nbsp;<b>25</b>&nbsp;Results for Quick Search',
-                            '<i class="fas fa-check-circle"></i> Track up to&nbsp;<b>50</b>&nbsp;Books',
-                            '<i class="fas fa-check-circle"></i> <b>Full</b>&nbsp;Archive and Research Access'
-                        ];
-                        break;
+                if (selectedPlan === 'pro') {
+                    try {
+                        // Create checkout session
+                        const response = await fetch('/create-checkout-session', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                        });
+                        
+                        const session = await response.json();
+                        
+                        if (session.error) {
+                            alert('Error: ' + session.error);
+                            return;
+                        }
+                        
+                        // Redirect to Stripe Checkout
+                        const result = await stripe.redirectToCheckout({
+                            sessionId: session.sessionId
+                        });
+                        
+                        if (result.error) {
+                            alert('Error: ' + result.error.message);
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('An error occurred. Please try again.');
+                    }
+                } else {
+                    // Handle downgrade to free plan
+                    alert('You have been switched to the free plan.');
                 }
-                
-                // Update the display
-                document.getElementById('currentPlan').textContent = planName;
-                document.getElementById('currentPrice').textContent = planPrice;
-                
-                // Update plan features list
-                const featuresList = document.getElementById('planFeatures');
-                featuresList.innerHTML = '';
-                planFeatures.forEach(feature => {
-                    const li = document.createElement('li');
-                    li.innerHTML = feature;
-                    featuresList.appendChild(li);
-                });
-                
-                // Send the selected plan to Firestore via our API endpoint
-                updateUserSettings({
-                    subscription_plan: selectedPlan
-                }, 'Your subscription plan has been updated successfully!');
             });
+            
+            // Check current subscription status
+            async function checkSubscriptionStatus() {
+                try {
+                    const response = await fetch('/get-user-plan');
+                    const data = await response.json();
+                    
+                    const currentPlanElement = document.getElementById('currentPlan');
+                    const currentPriceElement = document.getElementById('currentPrice');
+                    
+                    if (data.plan === 'pro') {
+                        currentPlanElement.textContent = 'Pro Plan';
+                        currentPriceElement.textContent = '$1.99/month';
+                        document.querySelector('.plan-option[data-plan="pro"]').classList.add('selected');
+                        document.querySelector('.plan-option[data-plan="free"]').classList.remove('selected');
+                    } else {
+                        currentPlanElement.textContent = 'Free Plan';
+                        currentPriceElement.textContent = '$0/month';
+                        document.querySelector('.plan-option[data-plan="free"]').classList.add('selected');
+                        document.querySelector('.plan-option[data-plan="pro"]').classList.remove('selected');
+                    }
+                } catch (error) {
+                    console.error('Error checking subscription status:', error);
+                }
+            }
+            
+            // Check subscription status on page load
+            checkSubscriptionStatus();
             
             // Preferences form submission
             document.getElementById('preferencesForm').addEventListener('submit', function(e) {
