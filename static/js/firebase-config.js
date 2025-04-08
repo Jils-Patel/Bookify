@@ -131,9 +131,31 @@ function deleteBook(bookId) {
             return;
         }
         
+        if (!bookId) {
+            showErrorMessage('Invalid book ID');
+            reject(new Error('Invalid book ID'));
+            return;
+        }
+
+        // First verify the book exists and belongs to the user
         db.collection('Documents')
             .doc(bookId)
-            .delete()
+            .get()
+            .then((doc) => {
+                if (!doc.exists) {
+                    reject(new Error('Book not found'));
+                    return;
+                }
+                
+                const bookData = doc.data();
+                if (bookData.user_id !== currentUserEmail) {
+                    reject(new Error('Unauthorized to delete this book'));
+                    return;
+                }
+                
+                // If verification passes, delete the book
+                return db.collection('Documents').doc(bookId).delete();
+            })
             .then(() => {
                 console.log('Book deleted successfully');
                 showSuccessMessage('Book deleted successfully!');
@@ -206,7 +228,7 @@ window.currentUserEmail = currentUserEmail;
 window.addBookToCollection = addBookToCollection;
 window.getUserBooks = getUserBooks;
 window.updateBook = updateBook;
-window.deleteBook = deleteBook;
+window.deleteBookFromFirebase = deleteBook;
 window.showLoading = showLoading;
 window.hideLoading = hideLoading;
 window.showSuccessMessage = showSuccessMessage;

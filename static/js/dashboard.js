@@ -21,6 +21,130 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Define showBookModal function globally
+    window.showBookModal = function(book) {
+        // Get or create modal elements
+        let modal = document.getElementById('bookModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'bookModal';
+            modal.className = 'modal';
+            document.body.appendChild(modal);
+        }
+        
+        // Create action buttons
+        const actionButtons = [];
+        
+        // Read Online button
+        if (book.reading_url) {
+            actionButtons.push(`
+                <a href="${book.reading_url}" target="_blank" class="read-online-btn">
+                    <i class="fas fa-book-reader"></i> Read Online
+                </a>
+            `);
+        }
+        
+        // Buy button
+        if (book.buy_link) {
+            actionButtons.push(`
+                <a href="${book.buy_link}" target="_blank" class="buy-btn">
+                    <i class="fas fa-shopping-cart"></i> Buy on Amazon
+                </a>
+            `);
+        }
+        
+        // Add to collection button
+        actionButtons.push(`
+            <button class="add-to-collection-btn" onclick="addToCollection(${JSON.stringify(book).replace(/"/g, '&quot;')})">
+                <i class="fas fa-plus"></i> Add to Collection
+            </button>
+        `);
+        
+        // Populate modal with book data
+        modal.innerHTML = `
+            <div class="modal-content">
+                <span class="close-button" onclick="closeBookModal()">&times;</span>
+                <div class="modal-book-info">
+                    <div class="modal-book-cover">
+                        <div class="book-cover-wrapper">
+                            <img src="${book.cover_url || '/static/images/book-placeholder.svg'}" 
+                                 alt="${book.title} cover" 
+                                 onerror="this.src='/static/images/book-placeholder.svg'">
+                            ${book.has_ebook ? '<div class="ebook-badge"><i class="fas fa-book-open"></i> E-book</div>' : ''}
+                        </div>
+                        <div class="action-buttons">
+                            ${actionButtons.join('')}
+                        </div>
+                    </div>
+                    <div class="modal-book-details">
+                        <h2 class="modal-book-title">${book.title}</h2>
+                        <div class="modal-book-metadata">
+                            <p>by ${book.author || 'Unknown Author'}</p>
+                            <p>Published: ${book.year || 'Unknown'}</p>
+                        </div>
+                        <div class="modal-book-recommendation">
+                            <h3>Description</h3>
+                            <p>${book.recommendation || book.description || 'No description available.'}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    };
+    
+    window.closeBookModal = function() {
+        const modal = document.getElementById('bookModal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    };
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        const modal = document.getElementById('bookModal');
+        if (event.target === modal) {
+            closeBookModal();
+        }
+    });
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeBookModal();
+        }
+    });
+    
+    // Add to collection function
+    window.addToCollection = function(bookData) {
+        if (typeof window.addBookToCollection === 'function') {
+            // Make sure we preserve important properties like reading_url
+            const bookToAdd = {
+                ...bookData,
+                reading_url: bookData.reading_url || null,
+                buy_link: bookData.buy_link || null,
+                has_ebook: bookData.has_ebook || false,
+                // Map reading_url to source_url for the book tracker page
+                source_url: bookData.reading_url || null
+            };
+            
+            window.addBookToCollection(bookToAdd)
+                .then(docId => {
+                    closeBookModal();
+                    loadRecentActivity(); // Refresh the recent activity
+                })
+                .catch(error => {
+                    console.error('Error adding book to collection:', error);
+                });
+        } else {
+            console.error('addBookToCollection function not available');
+            showErrorMessage('Could not add to collection. Please try again later.');
+        }
+    };
+
     // Initialize Firebase auth state
     firebase.auth().onAuthStateChanged(function(user) {
         if (user) {
@@ -674,132 +798,6 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('cachedRecommendations', recommendationsHTML);
             localStorage.setItem('cachedReadingPreferences', currentPreferences);
             localStorage.setItem('recommendationsLastUpdated', new Date().toISOString());
-            
-            // Add showBookModal function if it doesn't exist
-            if (!window.showBookModal) {
-                window.showBookModal = function(book) {
-                // Get or create modal elements
-                let modal = document.getElementById('bookModal');
-                if (!modal) {
-                    modal = document.createElement('div');
-                    modal.id = 'bookModal';
-                    modal.className = 'modal';
-                    document.body.appendChild(modal);
-                }
-                
-                    // Create action buttons
-                const actionButtons = [];
-                
-                    // Read Online button
-                    if (book.reading_url) {
-                    actionButtons.push(`
-                            <a href="${book.reading_url}" target="_blank" class="read-online-btn">
-                            <i class="fas fa-book-reader"></i> Read Online
-                        </a>
-                    `);
-                }
-                
-                    // Buy button
-                    if (book.buy_link) {
-                    actionButtons.push(`
-                            <a href="${book.buy_link}" target="_blank" class="buy-btn">
-                            <i class="fas fa-shopping-cart"></i> Buy on Amazon
-                        </a>
-                    `);
-                }
-                
-                    // Add to collection button
-                    actionButtons.push(`
-                        <button class="add-to-collection-btn" onclick="addToCollection(${JSON.stringify(book).replace(/"/g, '&quot;')})">
-                        <i class="fas fa-plus"></i> Add to Collection
-                    </button>
-                `);
-                
-                    // Populate modal with book data
-                modal.innerHTML = `
-                    <div class="modal-content">
-                            <span class="close-button" onclick="closeBookModal()">&times;</span>
-                            <div class="modal-book-info">
-                                <div class="modal-book-cover">
-                                    <div class="book-cover-wrapper">
-                                        <img src="${book.cover_url || '/static/images/book-placeholder.svg'}" 
-                                             alt="${book.title} cover" 
-                                         onerror="this.src='/static/images/book-placeholder.svg'">
-                                        ${book.has_ebook ? '<div class="ebook-badge"><i class="fas fa-book-open"></i> E-book</div>' : ''}
-                                    </div>
-                                    <div class="action-buttons">
-                                        ${actionButtons.join('')}
-                                    </div>
-                                </div>
-                                <div class="modal-book-details">
-                                    <h2 class="modal-book-title">${book.title}</h2>
-                                    <div class="modal-book-metadata">
-                                        <p>by ${book.author || 'Unknown Author'}</p>
-                                        <p>Published: ${book.year || 'Unknown'}</p>
-                                    </div>
-                                    <div class="modal-book-recommendation">
-                                        <h3>Description</h3>
-                                        <p>${book.recommendation || book.description || 'No description available.'}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                modal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-            };
-            
-                window.closeBookModal = function() {
-                    const modal = document.getElementById('bookModal');
-                    if (modal) {
-                        modal.style.display = 'none';
-                        document.body.style.overflow = 'auto';
-                    }
-                };
-                
-                // Close modal when clicking outside
-                window.addEventListener('click', function(event) {
-                    const modal = document.getElementById('bookModal');
-                    if (event.target === modal) {
-                        closeBookModal();
-                    }
-                });
-                
-                // Close modal on escape key
-                document.addEventListener('keydown', function(event) {
-                    if (event.key === 'Escape') {
-                        closeBookModal();
-                    }
-                });
-                
-                // Add to collection function
-                window.addToCollection = function(bookData) {
-                    if (typeof window.addBookToCollection === 'function') {
-                        // Make sure we preserve important properties like reading_url
-                        const bookToAdd = {
-                            ...bookData,
-                            reading_url: bookData.reading_url || null,
-                            buy_link: bookData.buy_link || null,
-                            has_ebook: bookData.has_ebook || false,
-                            // Map reading_url to source_url for the book tracker page
-                            source_url: bookData.reading_url || null
-                        };
-                        
-                        window.addBookToCollection(bookToAdd)
-                          .then(docId => {
-                              closeBookModal();
-                              loadRecentActivity(); // Refresh the recent activity
-                })
-                .catch(error => {
-                              console.error('Error adding book to collection:', error);
-                          });
-                    } else {
-                        console.error('addBookToCollection function not available');
-                        showErrorMessage('Could not add to collection. Please try again later.');
-                    }
-                };
-            }
             
         } catch (error) {
             console.error('Error loading recommendations:', error);
