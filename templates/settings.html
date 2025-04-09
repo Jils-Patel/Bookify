@@ -232,7 +232,35 @@
                     }
                 } else {
                     // Handle downgrade to free plan
-                    alert('You have been switched to the free plan.');
+                    try {
+                        // First, cancel the subscription in Stripe if it exists
+                        const cancelResponse = await fetch('/cancel-subscription', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                        });
+                        
+                        const cancelResult = await cancelResponse.json();
+                        
+                        if (cancelResult.error) {
+                            console.error('Error cancelling subscription:', cancelResult.error);
+                            // Continue with the plan update even if cancellation fails
+                        }
+                        
+                        // Update user settings in Firestore
+                        await updateUserSettings({
+                            subscription_plan: 'free',
+                            subscription_status: 'inactive'
+                        }, 'You have been switched to the free plan.');
+                        
+                        // Update UI
+                        document.getElementById('currentPlan').textContent = 'Free Plan';
+                        document.getElementById('currentPrice').textContent = '$0/month';
+                    } catch (error) {
+                        console.error('Error updating plan:', error);
+                        alert('An error occurred while updating your plan. Please try again.');
+                    }
                 }
             });
             
@@ -240,6 +268,11 @@
             async function checkSubscriptionStatus() {
                 try {
                     const response = await fetch('/get-user-plan');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    
                     const data = await response.json();
                     
                     const currentPlanElement = document.getElementById('currentPlan');
@@ -258,6 +291,11 @@
                     }
                 } catch (error) {
                     console.error('Error checking subscription status:', error);
+                    // Set default to free plan if there's an error
+                    document.getElementById('currentPlan').textContent = 'Free Plan';
+                    document.getElementById('currentPrice').textContent = '$0/month';
+                    document.querySelector('.plan-option[data-plan="free"]').classList.add('selected');
+                    document.querySelector('.plan-option[data-plan="pro"]').classList.remove('selected');
                 }
             }
             

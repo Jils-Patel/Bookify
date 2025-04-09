@@ -457,13 +457,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            let activitiesHTML = '';
-            let count = 0;
+            // Create an array to store all activities
+            const activities = [];
             
-            // Process the last 5 books as activities
+            // Process all books and add them to the activities array
             snapshot.forEach(doc => {
-                if (count >= 5) return; // Limit to 5 activities
-                
                 const book = doc.data();
                 const status = normalizeStatus(book.status);
                 let actionType = 'added';
@@ -482,29 +480,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 const dateAdded = book.date_added ? new Date(book.date_added.toDate()) : new Date();
-                const timeAgo = formatTimeAgo(dateAdded);
+                
+                // Add the activity to the array
+                activities.push({
+                    book,
+                    status,
+                    actionType,
+                    iconClass,
+                    actionText,
+                    dateAdded
+                });
+            });
+            
+            // Sort activities by date in descending order (most recent first)
+            activities.sort((a, b) => b.dateAdded - a.dateAdded);
+            
+            // Take only the 5 most recent activities
+            const recentActivities = activities.slice(0, 5);
+            
+            let activitiesHTML = '';
+            
+            // Generate HTML for the 5 most recent activities
+            recentActivities.forEach(activity => {
+                const timeAgo = formatTimeAgo(activity.dateAdded);
                 
                 activitiesHTML += `
                     <div class="activity-item" onclick="window.location.href='/tracker'">
-                        <div class="activity-icon ${iconClass}">
-                            ${getActivityIcon(actionType)}
+                        <div class="activity-icon ${activity.iconClass}">
+                            ${getActivityIcon(activity.actionType)}
                         </div>
                         <div class="activity-details">
-                            <div class="activity-title">${book.title}</div>
-                            <div class="activity-description">${actionText} by ${book.author || 'Unknown Author'}</div>
+                            <div class="activity-title">${activity.book.title}</div>
+                            <div class="activity-description">${activity.actionText} by ${activity.book.author || 'Unknown Author'}</div>
                             <div class="activity-time">${timeAgo}</div>
                         </div>
                     </div>
                 `;
-                
-                count++;
             });
             
             activityContainer.innerHTML = activitiesHTML;
-            
-            } catch (error) {
+        } catch (error) {
             console.error('Error loading recent activity:', error);
-            document.getElementById('recentActivity').innerHTML = `
+            const activityContainer = document.getElementById('recentActivity');
+            activityContainer.innerHTML = `
                 <div class="empty-state">
                     <p>Failed to load recent activity. Please try again later.</p>
                 </div>

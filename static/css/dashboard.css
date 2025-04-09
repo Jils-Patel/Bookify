@@ -370,9 +370,18 @@
     text-align: center;
     padding: 30px;
     color: #718096;
-    font-style: italic;
     background-color: #f7fafc;
     border-radius: 8px;
+    grid-column: 1 / -1; /* Make it span all columns */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px; /* Ensure it has a good height */
+}
+
+.empty-state p {
+    margin: 0;
+    font-size: 1.1rem;
 }
 
 /* Responsive Styles */

@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template, redirect, session, url_for
+from flask import Flask, request, jsonify, render_template, redirect, session, url_for, flash
 import openai
 import requests
 import re
@@ -106,7 +106,13 @@ def search_open_library(query, max_results=5):
         search_terms = query
     
     base_url = "http://openlibrary.org/search.json"
-    response = requests.get(f"{base_url}?q={search_terms}&limit={max_results}")
+    
+    # Add User-Agent header for Open Library API
+    headers = {
+        "User-Agent": "Bookify/1.0 (jilspatel02@gmail.com)"  # Replace with your actual email
+    }
+    
+    response = requests.get(f"{base_url}?q={search_terms}&limit={max_results}", headers=headers)
     result = response.json()
     
     if result.get('numFound', 0) == 0 and search_terms != query or search_terms == "None":
@@ -132,7 +138,7 @@ def search_open_library(query, max_results=5):
         search_terms = response.choices[0].message['content'].strip()
         print(f"Original input: '{query}'")
         print(f"Extracted terms: '{search_terms}'")
-        response = requests.get(f"{base_url}?q={search_terms}&limit={max_results}")
+        response = requests.get(f"{base_url}?q={search_terms}&limit={max_results}", headers=headers)
         result = response.json()
     
     return result
@@ -1067,7 +1073,7 @@ def create_checkout_session():
             mode='subscription',
             success_url=request.host_url + 'payment-success?session_id={CHECKOUT_SESSION_ID}',
             cancel_url=request.host_url + 'payment-cancelled',
-            client_reference_id=session['user']['uid'],
+            client_reference_id=session['user']['id'],
         )
         return jsonify({'sessionId': checkout_session.id})
     except Exception as e:
@@ -1078,25 +1084,31 @@ def create_checkout_session():
 def payment_success():
     session_id = request.args.get('session_id')
     if not session_id:
-        return redirect(url_for('index'))
+        return redirect(url_for('home'))
     
     try:
         # Retrieve the checkout session
         checkout_session = stripe.checkout.Session.retrieve(session_id)
         
-        # Update user's subscription status in Firestore
-        user_ref = db.collection('users').document(session['user']['uid'])
-        user_ref.update({
-            'subscription_status': 'active',
-            'stripe_customer_id': checkout_session.customer,
-            'subscription_id': checkout_session.subscription,
-        })
+        # Update subscription plan in Settings collection
+        settings_ref = db.collection('Settings').where('email', '==', session['user']['email']).limit(1)
+        settings_docs = settings_ref.get()
+        
+        if len(settings_docs) > 0:
+            document_id = settings_docs[0].id
+            db.collection('Settings').document(document_id).update({
+                'subscription_plan': 'pro',
+                'stripe_customer_id': checkout_session.customer,
+                'subscription_id': checkout_session.subscription,
+                'subscription_status': 'active',
+                'updated_at': firestore.SERVER_TIMESTAMP
+            })
         
         flash('Your subscription has been activated successfully!', 'success')
-        return redirect(url_for('index'))
+        return redirect(url_for('settings'))
     except Exception as e:
         flash('There was an error processing your payment. Please contact support.', 'error')
-        return redirect(url_for('index'))
+        return redirect(url_for('settings'))
 
 @app.route('/webhook', methods=['POST'])
 def stripe_webhook():
@@ -1116,22 +1128,82 @@ def stripe_webhook():
     if event['type'] == 'customer.subscription.deleted':
         subscription = event['data']['object']
         # Update user's subscription status in Firestore
-        users = db.collection('users').where('subscription_id', '==', subscription.id).get()
-        for user in users:
-            user.reference.update({
+        settings = db.collection('Settings').where('subscription_id', '==', subscription.id).get()
+        for setting in settings:
+            setting.reference.update({
                 'subscription_status': 'inactive',
-                'subscription_id': None
+                'subscription_id': None,
+                'subscription_plan': 'free',
+                'updated_at': firestore.SERVER_TIMESTAMP
             })
     elif event['type'] == 'customer.subscription.updated':
         subscription = event['data']['object']
         if subscription.status == 'active':
-            users = db.collection('users').where('subscription_id', '==', subscription.id).get()
-            for user in users:
-                user.reference.update({
-                    'subscription_status': 'active'
+            settings = db.collection('Settings').where('subscription_id', '==', subscription.id).get()
+            for setting in settings:
+                setting.reference.update({
+                    'subscription_status': 'active',
+                    'subscription_plan': 'pro',
+                    'updated_at': firestore.SERVER_TIMESTAMP
                 })
 
     return jsonify({'status': 'success'})
+
+@app.route('/cancel-subscription', methods=['POST'])
+@login_required
+def cancel_subscription():
+    try:
+        # Get user's settings to find their subscription ID
+        settings_ref = db.collection('Settings').where('email', '==', session['user']['email']).limit(1)
+        settings_docs = settings_ref.get()
+        
+        if len(settings_docs) > 0:
+            settings = settings_docs[0].to_dict()
+            subscription_id = settings.get('subscription_id')
+            
+            if subscription_id:
+                # Cancel the subscription in Stripe
+                stripe.Subscription.delete(subscription_id)
+                
+                # Update user's settings
+                document_id = settings_docs[0].id
+                db.collection('Settings').document(document_id).update({
+                    'subscription_plan': 'free',
+                    'subscription_status': 'inactive',
+                    'subscription_id': None,
+                    'updated_at': firestore.SERVER_TIMESTAMP
+                })
+                
+                return jsonify({'success': True, 'message': 'Subscription cancelled successfully'})
+            else:
+                return jsonify({'success': True, 'message': 'No active subscription found'})
+        else:
+            return jsonify({'error': 'User settings not found'}), 404
+            
+    except Exception as e:
+        print(f"Error cancelling subscription: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/get-user-plan')
+@login_required
+def get_user_plan():
+    try:
+        # Get user's settings to find their subscription plan
+        settings_ref = db.collection('Settings').where('email', '==', session['user']['email']).limit(1)
+        settings_docs = settings_ref.get()
+        
+        if len(settings_docs) > 0:
+            settings = settings_docs[0].to_dict()
+            return jsonify({
+                'plan': settings.get('subscription_plan', 'free'),
+                'status': settings.get('subscription_status', 'inactive')
+            })
+        else:
+            return jsonify({'plan': 'free', 'status': 'inactive'})
+            
+    except Exception as e:
+        print(f"Error getting user plan: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)
