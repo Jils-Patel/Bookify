@@ -11,6 +11,7 @@ from firebase_admin import firestore
 import firebase_admin.firestore as firestore_utils
 from dotenv import load_dotenv
 import stripe
+from usage_tracker import check_usage_limit, update_user_usage, check_book_tracking_limit, get_quick_search_limit
 
 # Load environment variables from .env file in development
 if os.path.exists('.env'):
@@ -532,10 +533,21 @@ def settings():
 def recommend():
     data = request.json
     user_input = data.get('user_input', '')
-    max_results = data.get('max_results', 5)  # Default to 5 if not specified
-    conversation_context = data.get('conversation_context', [])  # Get conversation history if provided
+    max_results = data.get('max_results', 5)
+    conversation_context = data.get('conversation_context', [])
+    
+    # Check if user has reached their AI query limit
+    if not check_usage_limit(session['user']['email'], 'ai_query'):
+        return jsonify({
+            'ai_response': "You've reached your daily limit of 3 AI queries. Upgrade to Pro for unlimited access!",
+            'books': [],
+            'response_type': 'ERROR'
+        }), 403
     
     try:
+        # Update usage after checking limit
+        update_user_usage(session['user']['email'], 'ai_query')
+        
         # Process conversation context
         messages = [
             {"role": "system", "content": """You are an AI that determines if a user's message requires book recommendations, research papers, or just a text response.
@@ -961,7 +973,19 @@ def quick_search_results():
     if not source or not query:
         return jsonify([])
 
+    # Check if user has reached their quick search limit
+    if not check_usage_limit(session['user']['email'], 'quick_search'):
+        return jsonify({
+            'error': "You've reached your daily limit of 3 quick searches. Upgrade to Pro for unlimited access!"
+        }), 403
+
     try:
+        # Update usage after checking limit
+        update_user_usage(session['user']['email'], 'quick_search')
+        
+        # Get the appropriate max results based on user's plan
+        max_results = min(max_results, get_quick_search_limit(session['user']['email']))
+
         if source == 'books':
             book_results = search_open_library(query, max_results=max_results)
             _, books_info = get_book_descriptions(query, book_results)
@@ -982,6 +1006,31 @@ def quick_search_results():
     except Exception as e:
         print(f"Error in quick search: {str(e)}")
         return jsonify([])
+
+@app.route('/add_to_collection', methods=['POST'])
+@login_required
+def add_to_collection():
+    data = request.json
+    book_data = data.get('book_data', {})
+    
+    # Check if user has reached their book tracking limit
+    if not check_book_tracking_limit(session['user']['email']):
+        return jsonify({
+            'error': "You've reached your limit of 5 tracked books. Upgrade to Pro to track unlimited books!"
+        }), 403
+    
+    try:
+        # Add book to collection
+        db = firestore.client()
+        book_data['user_id'] = session['user']['email']
+        book_data['date_added'] = firestore.SERVER_TIMESTAMP
+        
+        doc_ref = db.collection('Documents').add(book_data)
+        return jsonify({'success': True, 'id': doc_ref[1].id})
+        
+    except Exception as e:
+        print(f"Error adding book to collection: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/get_settings', methods=['GET'])
 def get_settings():

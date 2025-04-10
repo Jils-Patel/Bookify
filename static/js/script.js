@@ -18,17 +18,35 @@ function addToCollection(item, type) {
         buy_link: item.buy_link || null,
         year: item.year || 'Unknown'
     };
+    
     showLoading('Adding to your collection...');
     
-    addBookToCollection(bookData)
-        .then(() => {
-            hideLoading();
-            console.log('Book added successfully');
-        })
-        .catch(error => {
-            hideLoading();
-            console.error('Error adding book to collection:', error);
-        });
+    fetch('/add_to_collection', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ book_data: bookData })
+    })
+    .then(response => {
+        if (response.status === 403) {
+            return response.json().then(data => {
+                throw new Error(data.error);
+            });
+        }
+        if (!response.ok) {
+            throw new Error('Failed to add book to collection');
+        }
+        return response.json();
+    })
+    .then(data => {
+        hideLoading();
+        showSuccessMessage(`Added "${bookData.title}" to your collection!`);
+    })
+    .catch(error => {
+        hideLoading();
+        showErrorMessage(error.message);
+    });
 }
 
 function createBookCard(book) {
