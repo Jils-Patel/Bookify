@@ -1,5 +1,111 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize charts
+    // Add styles for the error modal
+    const errorModalStyles = `
+        .error-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .error-modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            position: relative;
+            text-align: center;
+        }
+        
+        .error-modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            position: relative;
+        }
+        
+        .error-modal-header i {
+            color: #e53e3e;
+            font-size: 24px;
+        }
+        
+        .error-modal-header h3 {
+            margin: 0;
+            color: #2d3748;
+            text-align: center;
+        }
+        
+        .error-modal-body {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .error-modal-body p {
+            margin: 0;
+            color: #4a5568;
+            line-height: 1.5;
+        }
+        
+        .error-modal-footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .upgrade-button {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .upgrade-button:hover {
+            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
+        }
+
+        .close-button {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            color: #4a5568;
+            transition: all 0.3s ease;
+        }
+
+        .close-button:hover {
+            background: #f7fafc;
+            color: #2d3748;
+        }
+    `;
+
+    // Add styles to document
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = errorModalStyles;
+    document.head.appendChild(styleSheet);
+
     let statusChart = null;
     let progressChart = null;
 
@@ -63,7 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Populate modal with book data
         modal.innerHTML = `
             <div class="modal-content">
-                <span class="close-button" onclick="closeBookModal()">&times;</span>
+                <!--<span class="close-button" onclick="closeBookModal()">&times;</span>-->
                 <div class="modal-book-info">
                     <div class="modal-book-cover">
                         <div class="book-cover-wrapper">
@@ -138,12 +244,56 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .catch(error => {
                     console.error('Error adding book to collection:', error);
+                    // Check if this is the book tracking limit error
+                    if (error.message && error.message.includes('limit of 5 tracked books')) {
+                        showTrackingLimitError(error.message);
+                    } else {
+                        showErrorMessage('Could not add to collection. Please try again later.');
+                    }
                 });
         } else {
             console.error('addBookToCollection function not available');
             showErrorMessage('Could not add to collection. Please try again later.');
         }
     };
+
+    // Show tracking limit error in a popup modal
+    function showTrackingLimitError(message) {
+        const modal = document.createElement('div');
+        modal.className = 'error-modal';
+        modal.innerHTML = `
+            <div class="error-modal-content">
+                <div class="error-modal-header">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Book Tracking Limit Reached</h3>
+                    <button class="close-button" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</button>
+                </div>
+                <div class="error-modal-body">
+                    <p>${message}</p>
+                </div>
+                <div class="error-modal-footer">
+                    <a href="/settings" class="upgrade-button">Upgrade to Pro</a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Close modal when clicking outside
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.remove();
+            }
+        });
+        
+        // Close modal with ESC key
+        const escHandler = function(event) {
+            if (event.key === 'Escape') {
+                modal.remove();
+                document.removeEventListener('keydown', escHandler);
+            }
+        };
+        document.addEventListener('keydown', escHandler);
+    }
 
     // Initialize Firebase auth state
     firebase.auth().onAuthStateChanged(function(user) {
@@ -505,7 +655,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const timeAgo = formatTimeAgo(activity.dateAdded);
                 
                 activitiesHTML += `
-                    <div class="activity-item" onclick="window.location.href='/tracker'">
+                    <div class="activity-item" onclick="window.location.href='/Tracker'">
                         <div class="activity-icon ${activity.iconClass}">
                             ${getActivityIcon(activity.actionType)}
                         </div>
@@ -628,7 +778,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Try Firestore API if no localStorage data
             console.log('No books in localStorage, trying API endpoint...');
-            const response = await fetch('/get_books');
+            const response = await fetch('/Get_Books');
             const data = await response.json();
 
             console.log('Raw API response:', data);
@@ -685,7 +835,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Alternatively, try to fetch books directly from the database
         try {
             console.log('Attempting to load books directly from database...');
-            const response = await fetch('/get_books');
+            const response = await fetch('/Get_Books');
             const data = await response.json();
 
             if (data && Array.isArray(data) && data.length > 0) {
@@ -728,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Fetch current user settings to check reading preferences
             const idToken = await currentUser.getIdToken(true);
-            const settingsResponse = await fetch('/get_settings', {
+            const settingsResponse = await fetch('/Get_Settings', {
                 headers: {
                     'Authorization': `Bearer ${idToken}`
                 }
@@ -765,7 +915,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Using preferences for recommendations:', query);
             
             // Fetch new recommendations
-            const recommendResponse = await fetch('/recommend', {
+            const recommendResponse = await fetch('/Recommend', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -859,7 +1009,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Get current preferences from settings
             const idToken = await currentUser.getIdToken(true);
-            const settingsResponse = await fetch('/get_settings', {
+            const settingsResponse = await fetch('/Get_Settings', {
                 headers: {
                     'Authorization': `Bearer ${idToken}`
                 }
@@ -1002,105 +1152,6 @@ document.addEventListener('DOMContentLoaded', function() {
             gap: 10px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             z-index: 1000;
-        }
-        
-        .error-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .error-modal-content {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 400px;
-            width: 90%;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            position: relative;
-            text-align: center;
-        }
-        
-        .error-modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            position: relative;
-        }
-        
-        .error-modal-header i {
-            color: #e53e3e;
-            font-size: 24px;
-        }
-        
-        .error-modal-header h3 {
-            margin: 0;
-            color: #2d3748;
-            text-align: center;
-        }
-        
-        .error-modal-body {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        
-        .error-modal-body p {
-            margin: 0;
-            color: #4a5568;
-            line-height: 1.5;
-        }
-        
-        .error-modal-footer {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .upgrade-button {
-            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 4px;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-        
-        .upgrade-button:hover {
-            background: linear-gradient(135deg, #3182ce 0%, #2c5282 100%);
-        }
-
-        .close-button {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background: white;
-            border: none;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            font-size: 20px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-            color: #4a5568;
-            transition: all 0.3s ease;
-        }
-
-        .close-button:hover {
-            background: #f7fafc;
-            color: #2d3748;
         }
     `;
 

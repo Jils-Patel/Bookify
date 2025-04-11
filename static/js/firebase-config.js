@@ -49,14 +49,32 @@ function addBookToCollection(bookData) {
             date_added: firebase.firestore.Timestamp.now()
         };
         
-        db.collection('Documents')
-            .add(bookToAdd)
-            .then((docRef) => {
-                console.log('Book added with ID:', docRef.id);
+        // Call the server endpoint to check limits and add the book
+        fetch('/Add_To_Collection', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ book_data: bookToAdd })
+        })
+        .then(response => {
+            if (response.status === 403) {
+                // This is the tracking limit error
+                return response.json().then(data => {
+                    throw new Error(data.error);
+                });
+            }
+            if (!response.ok) {
+                throw new Error('Failed to add book to collection');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Book added with ID:', data.id);
                 showSuccessMessage(`Added "${bookToAdd.title}" to your collection!`);
-                resolve(docRef.id);
+            resolve(data.id);
             })
-            .catch((error) => {
+        .catch(error => {
                 console.error('Error adding book:', error);
                 showErrorMessage(`Error adding to collection: ${error.message}`);
                 reject(error);

@@ -1,30 +1,53 @@
 body {
-    background-color: #f8f9fa;
+    background: linear-gradient(to bottom, #e3f2fd 0%, #f8f9fa 300px);
     margin: 0;
     padding: 0;
     font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
 }
 
+/* Add a main wrapper for the content */
+.main-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-bottom: 40px;
+}
+
+/* Header and Navbar */
 .home-header {
-    background-color: #fff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-    position: relative;
+    background-color: transparent;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    width: 100%;
+    padding: 15px;
 }
 
 .home-navbar {
     height: 70px;
     display: flex;
     align-items: center;
+    background-color: #fff;
+    border-radius: 35px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .home-navbar .container {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
     width: 100%;
+    padding: 0 25px;
 }
 
 .app-logo {
@@ -55,6 +78,7 @@ body {
     border: none;
     outline: none;
     text-decoration: none;
+    border-radius: 30px;
 }
 
 .signin-button:hover {
@@ -64,12 +88,13 @@ body {
 
 .login-container {
     max-width: 400px;
-    margin: 80px auto;
+    margin: 0 auto;
     padding: 40px;
     background-color: white;
     border-radius: 10px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     text-align: center;
+    margin-top: 200px;
 }
 
 .login-title {
@@ -137,9 +162,8 @@ body {
     color: white;
     padding: 20px 0;
     text-align: center;
-    position: absolute;
-    bottom: 0;
     width: 100%;
+    margin-top: auto;
 }
 
 .footer-simple {

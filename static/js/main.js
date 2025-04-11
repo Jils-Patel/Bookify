@@ -749,16 +749,20 @@ function handleUserInput() {
         // Get last few messages for context
         const conversationContext = getConversationContext();
         
+        // Prepare data for API request
+        const data = {
+            user_input: userInputValue,
+            conversation_context: conversationContext
+        };
+        
         // Send to API
-    fetch('/recommend', {
+        
+    fetch('/Recommend', {
         method: 'POST',
         headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-                user_input: userInputValue,
-                conversation_context: conversationContext
-        })
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
     .then(data => {
@@ -1008,10 +1012,30 @@ function showResearchModal(paper) {
 function closeModal() {
     const modal = document.getElementById('bookModal');
     if (modal) {
-    modal.style.display = 'none';
-    document.body.style.overflow = 'auto';
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
 }
-}
+
+// Add event listeners for modal closing
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('bookModal');
+    if (modal) {
+        // Close when clicking outside the modal content
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                closeModal();
+            }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    }
+});
 
 function addToCollection(item, type = 'book') {
     const id = 'book_' + Date.now();

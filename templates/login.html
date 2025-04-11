@@ -15,7 +15,7 @@
             <div class="container">
                 <a href="/" class="app-logo">Bookify</a>
                 <div class="nav-right">
-                    <a href="/login" class="signin-button">
+                    <a href="/Login" class="signin-button">
                         Sign In
                     </a>
                 </div>
@@ -23,29 +23,31 @@
         </nav>
     </header>
     
-    <div class="login-container">
-        <h1 class="login-title">Welcome to Bookify</h1>
-        
-        <div class="login-buttons">
-            <!-- Firebase will be initialized in this page -->
-            <div id="firebaseAuthContainer"></div>
+    <div class="main-wrapper">
+        <div class="login-container">
+            <h1 class="login-title">Welcome to Bookify</h1>
             
-            <!-- Alternative direct Google sign-in button -->
-            <a href="#" class="google-signin-button" onclick="signInWithGoogle()">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
-                Sign in with Google
+            <div class="login-buttons">
+                <!-- Firebase will be initialized in this page -->
+                <div id="firebaseAuthContainer"></div>
+                
+                <!-- Alternative direct Google sign-in button -->
+                <a href="#" class="google-signin-button" onclick="signInWithGoogle()">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
+                    Sign in with Google
+                </a>
+            </div>
+            
+            <a href="/" class="back-to-home">
+                <i class="fas fa-arrow-left"></i> Back to Home
             </a>
         </div>
-        
-        <a href="/" class="back-to-home">
-            <i class="fas fa-arrow-left"></i> Back to Home
-        </a>
     </div>
     
     <footer class="home-footer">
         <div class="container">
             <div class="footer-simple">
-                <p>&copy; 2025 Bookify. All rights reserved - <a href="/terms">Terms & Conditions</a> - <a href="/privacy">Privacy Policy</a></p>
+                <p>&copy; 2025 Bookify. All rights reserved - <a href="/Terms">Terms & Conditions</a> - <a href="/Privacy">Privacy Policy</a></p>
             </div>
         </div>
     </footer>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Bookify - Your AI Book Companion</title>
+        <title>Bookify - AI Assistant</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -9,269 +9,14 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
     </head>
     <body>
-        {% if user %}
-        <div class="app-layout">
-            <div class="side-navbar" id="sideNavbar">
-                <button id="navbarClose" class="navbar-close">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <a href="/homepage" class="nav-link" title="Home">
-                    <i class="fas fa-home"></i>
-                </a>
-                <a href="/dashboard" class="nav-link" title="Dashboard">
-                    <i class="fas fa-chart-pie"></i>
-                </a>
-                <a href="/" class="nav-link active" title="AI Assistant">
-                    <i class="fas fa-robot"></i>
-                </a>
-                <a href="/quick_search" class="nav-link" title="Quick Search">
-                    <i class="fas fa-search"></i>
-                </a>
-                <a href="/tracker" class="nav-link" title="Book Tracker">
-                    <i class="fa-solid fa-list-check"></i>
-                </a>
-                <a href="/settings" class="nav-link" title="Settings">
-                    <i class="fas fa-cog"></i>
-                </a>
-            </div>
-            
-            <div class="main-content">
-                <div class="top-navbar">
-                    <button id="menuToggle" class="menu-toggle">
-                        <i class="fas fa-bars"></i>
-                    </button>
-                    <a href="/homepage" class="app-logo">Bookify</a>
-                    
-                    <div class="user-info" id="userProfile">
-                        <div class="user-avatar">
-                            {% if user['avatar_url'] %}
-                                <img src="{{ user['avatar_url'] }}" alt="{{ user['name'] }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
-                            {% else %}
-                                {{ user['name'][0]|upper if user['name'] else 'U' }}
-                            {% endif %}
-                        </div>
-                        <div class="user-name">{{ user['name'] }}</div>
-                        <i class="fas fa-chevron-down" style="margin-left: 10px; color: rgba(255, 255, 255, 0.7);"></i>
-                        
-                        <div class="user-dropdown" id="userDropdown">
-                            <a href="/logout" class="dropdown-item">
-                                <i class="fas fa-sign-out-alt"></i>
-                                Sign Out
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="content-area">
-                    <div class="chat-container">
-                        <div class="chat-sidebar">
-                            <div class="sidebar-header">
-                                <h3>Your Conversations</h3>
-                                <div class="sidebar-buttons">
-                                    <button id="newChatBtn" title="Start a new conversation">
-                                        <i class="fas fa-plus"></i>
-                                    </button>
-                                    <button id="closeSidebarBtn" class="mobile-only" title="Close sidebar">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="chat-list-container">
-                                <div id="chatsList" class="chats-list">
-                                    <!-- Chat conversations will be listed here -->
-                                    <div class="chat-list-empty">
-                                        <p>No conversations yet</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="chat-main">
-                            <div class="chat-main-header">
-                                <div class="header-left">
-                                    <button id="mobileSidebarToggle" class="sidebar-toggle mobile-only" title="Show conversations">
-                                        <i class="fas fa-bars"></i>
-                                    </button>
-                                    <!-- Desktop sidebar toggle button -->
-                                    <button id="toggleChatSidebar" class="sidebar-toggle desktop-only" title="Toggle sidebar">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </button>
-                                    <h2 id="currentChatTitle">New Conversation</h2>
-                                </div>
-                                <div class="chat-main-actions">
-                                    <button id="renameChatBtn" title="Rename this conversation">
-                                        <i class="fas fa-edit"></i>
-                                    </button>
-                                    <button id="deleteChatBtn" title="Delete this conversation">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div class="chat-history">
-                                <!-- Chat messages will appear here -->
-                            </div>
-                            
-                            <div class="chat-input-container">
-                                <div class="input-area">
-                                    <textarea id="userInput" placeholder="Ask me anything about books or tell me what kind of books you're interested in..."></textarea>
-                                    <button id="findBooksBtn">
-                                        <i class="fas fa-paper-plane"></i>
-                                    </button>
-                                </div>
-                                <!--<div class="chat-actions">
-                                    <button id="clearChatBtn" onclick="clearCurrentChat()" title="Clear current chat">
-                                        <i class="fas fa-trash-alt"></i> Clear Chat
-                                    </button>
-                                </div>-->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal -->
-        <div id="bookModal" class="modal">
-            <div class="modal-content">
-                <span class="close-button" onclick="closeModal()">&times;</span>
-                <div id="modalContent"></div>
-            </div>
-        </div>
-
-        <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-        <script>
-            // Toggle user dropdown
-            document.getElementById('userProfile').addEventListener('click', function(e) {
-                e.stopPropagation();
-                document.getElementById('userDropdown').classList.toggle('active');
-            });
-            
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function() {
-                document.getElementById('userDropdown').classList.remove('active');
-            });
-            
-            // Mobile menu toggle
-            document.getElementById('menuToggle').addEventListener('click', function() {
-                document.getElementById('sideNavbar').classList.toggle('active');
-            });
-            
-            // Navbar close button
-            document.getElementById('navbarClose').addEventListener('click', function() {
-                document.getElementById('sideNavbar').classList.remove('active');
-            });
-            
-            // Add closeModal function
-            function closeModal() {
-                const modal = document.getElementById('bookModal');
-                modal.style.display = 'none';
-                document.body.style.overflow = 'auto';
-            }
-
-            // Close modal when clicking outside
-            window.onclick = function(event) {
-                const modal = document.getElementById('bookModal');
-                if (event.target == modal) {
-                    closeModal();
-                }
-                // Also close the side navbar if clicked outside
-                if (!event.target.closest('#sideNavbar') && !event.target.closest('#menuToggle')) {
-                    document.getElementById('sideNavbar').classList.remove('active');
-                }
-            }
-
-            // Close modal on escape key
-            document.addEventListener('keydown', function(event) {
-                if (event.key === 'Escape') {
-                    closeModal();
-                    document.getElementById('sideNavbar').classList.remove('active');
-                }
-            });
-
-            document.addEventListener('DOMContentLoaded', function() {
-            const desktopToggle = document.getElementById('toggleChatSidebar');
-            const mobileToggle = document.getElementById('mobileSidebarToggle');
-            const chatContainer = document.querySelector('.chat-container');
-            const overlay = document.querySelector('.chat-sidebar-overlay');
-            
-            // Function to check if we're on mobile
-            function isMobile() {
-                return window.innerWidth <= 768;
-            }
-            
-            // Desktop toggle behavior
-            if (desktopToggle && chatContainer) {
-                desktopToggle.addEventListener('click', function() {
-                    chatContainer.classList.toggle('sidebar-collapsed');
-                    
-                    // Save preference to localStorage (for desktop only)
-                    if (!isMobile()) {
-                        const isCollapsed = chatContainer.classList.contains('sidebar-collapsed');
-                        localStorage.setItem('chatSidebarCollapsed', isCollapsed);
-                    }
-                });
-                
-                // Restore user preference for desktop
-                if (!isMobile()) {
-                    const savedPreference = localStorage.getItem('chatSidebarCollapsed');
-                    if (savedPreference === 'true') {
-                        chatContainer.classList.add('sidebar-collapsed');
-                    }
-                }
-            }
-            
-            // Mobile toggle behavior
-            if (mobileToggle && chatContainer) {
-                mobileToggle.addEventListener('click', function() {
-                    chatContainer.classList.add('sidebar-visible');
-                });
-            }
-            
-            // Close sidebar when clicking on overlay
-            if (overlay) {
-                overlay.addEventListener('click', function() {
-                    chatContainer.classList.remove('sidebar-visible');
-                });
-            }
-
-            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
-    if (closeSidebarBtn) {
-        closeSidebarBtn.addEventListener('click', function() {
-            const chatContainer = document.querySelector('.chat-container');
-            chatContainer.classList.remove('sidebar-visible');
-        });
-    }
-            
-            // Handle window resize
-            window.addEventListener('resize', function() {
-                if (isMobile()) {
-                    chatContainer.classList.remove('sidebar-collapsed');
-                    // On mobile, start with sidebar hidden unless explicitly shown
-                    if (!chatContainer.classList.contains('sidebar-visible')) {
-                        chatContainer.classList.remove('sidebar-visible');
-                    }
-                } else {
-                    chatContainer.classList.remove('sidebar-visible');
-                    // On desktop, use the saved preference
-                    const savedPreference = localStorage.getItem('chatSidebarCollapsed');
-                    if (savedPreference === 'true') {
-                        chatContainer.classList.add('sidebar-collapsed');
-                    } else {
-                        chatContainer.classList.remove('sidebar-collapsed');
-                    }
-                }
-            });
-        });
-        </script>
-        {% else %}
+        
         <!-- Home Page for Non-Authenticated Users -->
         <header class="home-header">
             <nav class="home-navbar">
                 <div class="container">
                     <a href="/" class="app-logo">Bookify</a>
                     <div class="nav-right">
-                        <a href="/login" class="signin-button">
+                        <a href="/Login" class="signin-button">
                             Sign In
                         </a>
                     </div>
@@ -287,7 +32,7 @@
                 <p class="hero-subtitle">Your personal AI-powered reading assistant. Discover new books, track your reading progress, and explore research papers all in one place.</p>
                 
                     <div class="hero-buttons">
-                        <a href="/login" class="primary-button">
+                        <a href="/Login" class="primary-button">
                             Get Started
                         </a>
                         <a href="#features" class="secondary-button">
@@ -538,7 +283,7 @@
                             </ul>
                         </div>
                         <div class="pricing-cta">
-                            <a href="/login" class="pricing-button">Get Started</a>
+                            <a href="/Login" class="pricing-button">Get Started</a>
                         </div>
                     </div>
                     
@@ -562,7 +307,7 @@
                             </ul>
                         </div>
                         <div class="pricing-cta">
-                            <a href="/login" class="pricing-button">Get Started</a>
+                            <a href="/Login" class="pricing-button">Get Started</a>
                         </div>
                     </div>
                 </div>
@@ -599,7 +344,7 @@
         </main>
         
         <footer class="home-footer">
-            <p class="footer-simple">&copy; 2025 Bookify. All rights reserved - <a href="/terms">Terms & Conditions</a> - <a href="/privacy">Privacy Policy</a></p>
+            <p class="footer-simple">&copy; 2025 Bookify. All rights reserved - <a href="/Terms">Terms & Conditions</a> - <a href="/Privacy">Privacy Policy</a></p>
         </footer>
 
         <script>
@@ -628,7 +373,6 @@
                 });
             });
         </script>
-        {% endif %}
 
         <!-- Firebase SDK -->
         <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>

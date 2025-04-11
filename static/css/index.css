@@ -41,6 +41,7 @@
     border: none;
     outline: none;
     text-decoration: none;
+    border-radius: 30px;
 }
 
 .signin-button:hover {
@@ -247,26 +248,34 @@
 
 /* Header and Navbar */
 .home-header {
-    background-color: #fff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    background-color: transparent;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     z-index: 1000;
     width: 100%;
+    padding: 15px;
 }
 
 .home-navbar {
     height: 70px;
     display: flex;
     align-items: center;
+    background-color: #fff;
+    border-radius: 35px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 .home-navbar .container {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    width: 100%;
+    padding: 0 25px;
 }
 
 .nav-right {
@@ -277,7 +286,7 @@
 /* Hero Section - Modified for seamless integration */
 #hero {
     padding: 60px 0;
-    background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+    background: transparent;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -1015,6 +1024,7 @@ html, body {
 body:not(.app-layout) {
     height: auto;
     overflow-y: auto;
+    background: linear-gradient(to bottom, #e3f2fd 0%, #f8f9fa 300px);
 }
 
 .hero-section {
@@ -1025,7 +1035,7 @@ body:not(.app-layout) {
 .home-main {
     height: auto;
     overflow: visible;
-    margin-top: 70px;
+    margin-top: 50px;
     width: 100vw;
     max-width: 100%;
     overflow-x: hidden;

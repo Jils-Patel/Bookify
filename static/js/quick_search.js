@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const searchResults = document.getElementById('searchResults');
     const modal = document.getElementById('bookModal');
     const modalContent = document.getElementById('modalContent');
-    const closeButton = document.querySelector('.close-button');
 
     const imageCache = new Map();
 
@@ -45,6 +44,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="error-modal-footer">
                     <a href="/settings" class="upgrade-button">Upgrade to Pro</a>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    function showErrorMessageAuth(message) {
+        const modal = document.createElement('div');
+        modal.className = 'error-modal';
+        modal.innerHTML = `
+            <div class="error-modal-content">
+                <div class="error-modal-header">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Error</h3>
+                    <button class="close-button" onclick="this.parentElement.parentElement.parentElement.remove()">&times;</button>
+                </div>
+                <div class="error-modal-body">
+                    <p>${message}</p>
                 </div>
             </div>
         `;
@@ -165,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (!searchQuery.value.trim()) {
-            showErrorMessage('Please enter a search query!');
+            showErrorMessageAuth('Please enter a search query!');
             return;
         }
 
@@ -179,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         try {
-            const response = await fetch(`/quick_search/results?${params.toString()}`);
+            const response = await fetch(`/Quick_Search/Results?${params.toString()}`);
             
             if (response.status === 403) {
                 const data = await response.json();
@@ -445,16 +462,27 @@ document.addEventListener('DOMContentLoaded', function() {
         performSearch();
     });
 
-    closeButton.onclick = function() {
-        modal.style.display = 'none';
-        document.body.style.overflow = 'auto';
-    };
-
-    window.onclick = function(event) {
-        if (event.target === modal) {
-            modal.style.display = 'none';
-            document.body.style.overflow = 'auto';
+    // Add modal closing functionality
+    const bookModal = document.getElementById('bookModal');
+    
+    // Close modal when clicking outside
+    window.addEventListener('click', function(event) {
+        if (event.target === bookModal) {
+            closeModal();
         }
+    });
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeModal();
+        }
+    });
+    
+    // Close modal function
+    window.closeModal = function() {
+        bookModal.style.display = 'none';
+        document.body.style.overflow = 'auto';
     };
 
     searchQuery.addEventListener('keypress', (e) => {
@@ -503,7 +531,24 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 loadingIndicator.remove();
-                showErrorMessage(`Error adding to collection: ${error.message}`);
+                // Check if this is the book tracking limit error
+                if (error.message && error.message.includes('limit of 5 tracked books')) {
+                    // Use the existing showErrorMessage function which already shows as a modal
+                    showErrorMessage(error.message);
+                } else {
+                    // Use the error message component for other errors
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'error-message';
+                    errorMsg.innerHTML = `
+                        <i class="fas fa-exclamation-circle"></i>
+                        ${error.message}
+                    `;
+                    document.body.appendChild(errorMsg);
+                    
+                    setTimeout(() => {
+                        errorMsg.remove();
+                    }, 5000);
+                }
             });
     };
 }); 

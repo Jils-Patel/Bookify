@@ -439,7 +439,7 @@ def get_semantic_scholar_details(papers):
     
     return paper_info
 
-@app.route('/login')
+@app.route('/Login')
 def login():
     return render_template('login.html')
 
@@ -483,12 +483,12 @@ def process_firebase_token():
         except Exception as e:
             print(f"Error initializing settings for user: {str(e)}")
         
-        return jsonify({'success': True, 'redirect': url_for('home')})
+        return jsonify({'success': True, 'redirect': url_for('home_page')})
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/logout')
+@app.route('/Logout')
 def logout():
     session.clear()
     return redirect(url_for('home'))
@@ -496,39 +496,44 @@ def logout():
 @app.route('/')
 def home():
     if 'user' in session:
-        return render_template('index.html', user=session['user'])
+        return redirect(url_for('home_page'))
     else:
         return render_template('index.html')
 
-@app.route('/homepage')
+@app.route('/Home')
 @login_required
-def homepage():
+def home_page():
     return render_template('homepage.html', user=session['user'])
 
-@app.route('/dashboard')
+@app.route('/Dashboard')
 @login_required
 def dashboard():
     return render_template('dashboard.html', user=session['user'])
 
-@app.route('/tracker')
+@app.route('/Assistant')
+@login_required
+def assistant():
+    return render_template('assistant.html', user=session['user'])
+
+@app.route('/Tracker')
 @login_required
 def tracker():
     return render_template('tracker.html')
 
-@app.route('/terms')
+@app.route('/Terms')
 def terms():
     return render_template('terms.html')
 
-@app.route('/privacy')
+@app.route('/Privacy')
 def privacy():
     return render_template('privacy.html')
 
-@app.route('/settings')
+@app.route('/Settings')
 @login_required
 def settings():
     return render_template('settings.html')
 
-@app.route('/recommend', methods=['POST'])
+@app.route('/Recommend', methods=['POST'])
 @login_required
 def recommend():
     data = request.json
@@ -789,7 +794,7 @@ def recommend():
             'response_type': 'ERROR'
         }), 500
 
-@app.route('/search_books', methods=['GET'])
+@app.route('/Search_Books', methods=['GET'])
 def search_books_tracker():
     query = request.args.get('query', '')
     if not query:
@@ -850,7 +855,7 @@ def search_books_tracker():
     
     return jsonify({'books': books})
 
-@app.route('/book_details/<olid>', methods=['GET'])
+@app.route('/Book_Details/<olid>', methods=['GET'])
 @login_required
 def book_details(olid):
     if not olid:
@@ -958,12 +963,12 @@ def book_details(olid):
     
     return jsonify(book_details)
 
-@app.route('/quick_search')
+@app.route('/Quick_Search')
 @login_required
 def quick_search():
     return render_template('quick_search.html', active_page='quick_search')
 
-@app.route('/quick_search/results')
+@app.route('/Quick_Search/Results')
 @login_required
 def quick_search_results():
     source = request.args.get('source')
@@ -1007,7 +1012,7 @@ def quick_search_results():
         print(f"Error in quick search: {str(e)}")
         return jsonify([])
 
-@app.route('/add_to_collection', methods=['POST'])
+@app.route('/Add_To_Collection', methods=['POST'])
 @login_required
 def add_to_collection():
     data = request.json
@@ -1032,7 +1037,7 @@ def add_to_collection():
         print(f"Error adding book to collection: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/get_settings', methods=['GET'])
+@app.route('/Get_Settings', methods=['GET'])
 def get_settings():
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
@@ -1072,7 +1077,7 @@ def get_settings():
         print(f"Error in get_settings: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/update_settings', methods=['POST'])
+@app.route('/Update_Settings', methods=['POST'])
 def update_settings():
     auth_header = request.headers.get('Authorization')
     
@@ -1108,7 +1113,7 @@ def update_settings():
         print(f"Error in update_settings: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/create-checkout-session', methods=['POST'])
+@app.route('/Create-Checkout-Session', methods=['POST'])
 @login_required
 def create_checkout_session():
     try:
@@ -1128,7 +1133,7 @@ def create_checkout_session():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-@app.route('/payment-success')
+@app.route('/Payment-Success')
 @login_required
 def payment_success():
     session_id = request.args.get('session_id')
@@ -1159,7 +1164,7 @@ def payment_success():
         flash('There was an error processing your payment. Please contact support.', 'error')
         return redirect(url_for('settings'))
 
-@app.route('/webhook', methods=['POST'])
+@app.route('/Webhook', methods=['POST'])
 def stripe_webhook():
     payload = request.get_data()
     sig_header = request.headers.get('Stripe-Signature')
@@ -1198,7 +1203,7 @@ def stripe_webhook():
 
     return jsonify({'status': 'success'})
 
-@app.route('/cancel-subscription', methods=['POST'])
+@app.route('/Cancel-Subscription', methods=['POST'])
 @login_required
 def cancel_subscription():
     try:
@@ -1233,7 +1238,7 @@ def cancel_subscription():
         print(f"Error cancelling subscription: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/get-user-plan')
+@app.route('/Get-User-Plan')
 @login_required
 def get_user_plan():
     try:
