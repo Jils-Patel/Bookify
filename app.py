@@ -1259,5 +1259,23 @@ def get_user_plan():
         print(f"Error getting user plan: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/get_firebase_config')
+def get_firebase_config():
+    try:
+        config = {
+            'apiKey': os.environ.get('FIREBASE_WEB_API_KEY'),
+            'authDomain': os.environ.get('FIREBASE_WEB_AUTH_DOMAIN'),
+            'projectId': os.environ.get('FIREBASE_WEB_PROJECT_ID'),
+            'storageBucket': os.environ.get('FIREBASE_WEB_STORAGE_BUCKET'),
+            'messagingSenderId': os.environ.get('FIREBASE_WEB_MESSAGING_SENDER_ID'),
+            'appId': os.environ.get('FIREBASE_WEB_APP_ID'),
+            'measurementId': os.environ.get('FIREBASE_WEB_MEASUREMENT_ID')
+        }
+        print("Firebase config:", config)  # Debug print
+        return jsonify(config)
+    except Exception as e:
+        print("Error in get_firebase_config:", str(e))  # Debug print
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True)

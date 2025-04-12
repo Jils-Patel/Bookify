@@ -35,7 +35,6 @@
                     }
                 });
                 
-                console.log("Extracted token data:", JSON.stringify(params));
                 return params;
             }
             
@@ -72,7 +71,6 @@
                 })
                 .catch(error => {
                     showError('Error processing authentication: ' + error.message);
-                    console.error('Error details:', error);
                 });
             }
             

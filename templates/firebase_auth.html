@@ -24,17 +24,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Firebase configuration
-            const firebaseConfig = {
-                apiKey: "AIzaSyB3dxIhLUE7gqA-PQS7rvVJCgwUT5_6uJk",
-                authDomain: "bookify-ee9d0.firebaseapp.com",
-                projectId: "bookify-ee9d0",
-                storageBucket: "bookify-ee9d0.firebasestorage.app",
-                messagingSenderId: "650229262126",
-                appId: "1:650229262126:web:4b6c414dabcd9da8b37cbf",
-                measurementId: "G-TNXY1YZP5X"
-            };
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Fetch Firebase configuration from backend
+            const response = await fetch('/get_firebase_config');
+            const firebaseConfig = await response.json();
             
             // Initialize Firebase
             firebase.initializeApp(firebaseConfig);
@@ -91,7 +84,6 @@
                         // Show error message
                         errorMessage.textContent = 'Error signing in: ' + error.message;
                         errorMessage.style.display = 'block';
-                        console.error('Sign-in error:', error);
                     });
             });
         });

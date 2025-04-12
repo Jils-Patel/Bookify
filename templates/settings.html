@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Account Settings - Bookify</title>
+        <title>Bookify - Settings</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='images/favicon.ico') }}">
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
         <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
@@ -199,6 +200,38 @@
                 });
             });
             
+            // Load user settings from Firestore when the page loads
+            document.addEventListener('DOMContentLoaded', async function() {
+                try {
+                    // Wait for Firebase to be initialized
+                    await waitForFirebase();
+                    
+                    // Check if user is authenticated
+                    firebase.auth().onAuthStateChanged(function(user) {
+                        if (user) {
+                            loadUserSettings();
+                        } else {
+                            // Show a warning message
+                            const errorMsg = document.createElement('div');
+                            errorMsg.className = 'error-message';
+                            errorMsg.innerHTML = `
+                                <i class="fas fa-exclamation-circle"></i>
+                                You need to be logged in to access settings. Please refresh the page or log in again.
+                            `;
+                            document.body.appendChild(errorMsg);
+                        }
+                    });
+                } catch (error) {
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'error-message';
+                    errorMsg.innerHTML = `
+                        <i class="fas fa-exclamation-circle"></i>
+                        Error initializing the application. Please try refreshing the page.
+                    `;
+                    document.body.appendChild(errorMsg);
+                }
+            });
+            
             // Save plan button
             document.getElementById('savePlanBtn').addEventListener('click', async function() {
                 const selectedPlan = document.querySelector('.plan-option.selected').getAttribute('data-plan');
@@ -229,7 +262,6 @@
                             alert('Error: ' + result.error.message);
                         }
                     } catch (error) {
-                        console.error('Error:', error);
                         alert('An error occurred. Please try again.');
                     }
                 } else {
@@ -246,7 +278,6 @@
                         const cancelResult = await cancelResponse.json();
                         
                         if (cancelResult.error) {
-                            console.error('Error cancelling subscription:', cancelResult.error);
                             // Continue with the plan update even if cancellation fails
                         }
                         
@@ -260,7 +291,6 @@
                         document.getElementById('currentPlan').textContent = 'Free Plan';
                         document.getElementById('currentPrice').textContent = '$0/month';
                     } catch (error) {
-                        console.error('Error updating plan:', error);
                         alert('An error occurred while updating your plan. Please try again.');
                     }
                 }
@@ -292,7 +322,6 @@
                         document.querySelector('.plan-option[data-plan="pro"]').classList.remove('selected');
                     }
                 } catch (error) {
-                    console.error('Error checking subscription status:', error);
                     // Set default to free plan if there's an error
                     document.getElementById('currentPlan').textContent = 'Free Plan';
                     document.getElementById('currentPrice').textContent = '$0/month';
@@ -390,8 +419,6 @@
                             loadingMsg.remove();
                         }
                         
-                        console.error('Error saving settings:', error);
-                        
                         // Show error message
                         const errorMsg = document.createElement('div');
                         errorMsg.className = 'error-message';
@@ -407,27 +434,6 @@
                         }, 5000);
                     });
             }
-            
-            // Load user settings from Firestore when the page loads
-            document.addEventListener('DOMContentLoaded', function() {
-                // Check if user is authenticated
-                firebase.auth().onAuthStateChanged(function(user) {
-                    if (user) {
-                        console.log('User is authenticated, loading settings...');
-                        loadUserSettings();
-                    } else {
-                        console.error('User is not authenticated');
-                        // Show a warning message
-                        const errorMsg = document.createElement('div');
-                        errorMsg.className = 'error-message';
-                        errorMsg.innerHTML = `
-                            <i class="fas fa-exclamation-circle"></i>
-                            You need to be logged in to access settings. Please refresh the page or log in again.
-                        `;
-                        document.body.appendChild(errorMsg);
-                    }
-                });
-            });
             
             // Function to load user settings from Firestore
             function loadUserSettings() {
@@ -533,8 +539,6 @@
                         if (loadingMsg) {
                             loadingMsg.remove();
                         }
-                        
-                        console.error('Error loading settings:', error);
                         
                         // Show error message
                         const errorMsg = document.createElement('div');

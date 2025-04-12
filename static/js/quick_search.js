@@ -263,13 +263,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         const source = this.getAttribute('data-source');
                         showDetails(itemData, source);
                     } catch (error) {
-                        console.error('Error parsing item data:', error);
                     }
                 });
             });
 
         } catch (error) {
-            console.error('Search error:', error);
             spinner.style.display = 'none';
             searchResults.innerHTML = '<p class="error-message">An error occurred while searching. Please try again.</p>';
         }
@@ -527,7 +525,6 @@ document.addEventListener('DOMContentLoaded', function() {
         addBookToCollection(bookData)
             .then(() => {
                 loadingIndicator.remove();
-                console.log('Book added successfully');
             })
             .catch(error => {
                 loadingIndicator.remove();

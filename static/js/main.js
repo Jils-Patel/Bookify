@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
     // Initialize UI elements
     const findBooksBtn = document.getElementById('findBooksBtn');
     const userInput = document.getElementById('userInput');
@@ -13,16 +13,21 @@ document.addEventListener('DOMContentLoaded', function() {
     let chats = [];
     let chatHistory = [];
     
-    // Initialize Firebase auth state
-    firebase.auth().onAuthStateChanged(function(user) {
-        if (user) {
-            console.log('User is authenticated, loading chats...');
-            loadUserChats();
-        } else {
-            console.error('User is not authenticated');
-            showWelcomeMessage();
-        }
-    });
+    try {
+        // Wait for Firebase to be initialized
+        await waitForFirebase();
+        
+        // Initialize Firebase auth state
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+                loadUserChats();
+            } else {
+                showWelcomeMessage();
+            }
+        });
+    } catch (error) {
+        showErrorMessage('Error initializing the application. Please try refreshing the page.');
+    }
     
     // Set up event listeners
     findBooksBtn.addEventListener('click', handleUserInput);
@@ -82,7 +87,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch((error) => {
-                console.error('Error loading chats:', error);
                 showErrorMessage('Failed to load your conversations. Please try again later.');
             });
     }
@@ -115,7 +119,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 selectChat(docRef.id);
             })
             .catch((error) => {
-                console.error('Error creating new chat:', error);
                 showErrorMessage('Failed to create a new conversation');
             });
     }
@@ -195,7 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Load messages from the selected chat
         if (chat.messages && chat.messages.length > 0) {
             chat.messages.forEach(msg => {
-                addMessageToHistory(msg.message, msg.isUser, msg.items, msg.responseType, false);
+                addMessageToHistory(msg.message, msg.isUser, msg.items, msg.responseType, false, false);
             });
         } else {
             // Show welcome message in an empty chat
@@ -370,7 +373,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
                 .catch((error) => {
-                    console.error('Error renaming chat:', error);
                     showErrorMessage('Failed to rename conversation');
                 });
         }
@@ -542,7 +544,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch((error) => {
-                console.error('Error deleting chat:', error);
                 showErrorMessage('Failed to delete conversation');
             });
     }
@@ -579,65 +580,93 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
                 .catch((error) => {
-                    console.error('Error clearing chat:', error);
                     showErrorMessage('Failed to clear conversation');
                 });
         }
     }
     
-    // Add a message to the chat history
-    function addMessageToHistory(message, isUser = false, items = null, responseType = null, shouldSave = true) {
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
-    
-    if (items && items.length > 0) {
-        const messageContent = document.createElement('div');
-        messageContent.className = 'message-content';
+    // Function to create typing animation effect
+    function typeMessage(message, element, speed = -20) {
+        let i = 0;
+        element.textContent = ''; // Clear the element
         
-        const textDiv = document.createElement('div');
-        textDiv.className = 'message-text';
-        textDiv.textContent = message;
-        messageContent.appendChild(textDiv);
-        
-        const itemGrid = document.createElement('div');
-        itemGrid.className = 'message-book-grid';
-        
-        const gridTitle = document.createElement('div');
-        gridTitle.className = 'grid-title';
-        
-        if (responseType === 'RESEARCH_RECENT') {
-            gridTitle.textContent = 'Recent Research Papers:';
-        } else if (responseType === 'RESEARCH_ARCHIVE') {
-            gridTitle.textContent = 'Archival Research & Documents:';
-        } else {
-            gridTitle.textContent = 'Book Recommendations:';
+        function type() {
+            if (i < message.length) {
+                element.textContent += message.charAt(i);
+                i++;
+                setTimeout(type, speed);
+            }
         }
         
-        messageContent.appendChild(gridTitle);
-        
-        items.forEach(item => {
-            let itemCard;
-            if (responseType === 'RESEARCH_RECENT') {
-                itemCard = createScholarCard(item);
-            } else if (responseType === 'RESEARCH_ARCHIVE') {
-                itemCard = createResearchCard(item);
-            } else {
-                itemCard = createBookCard(item);
-            }
-            itemGrid.appendChild(itemCard);
-        });
-        messageContent.appendChild(itemGrid);
-        
-        messageDiv.appendChild(messageContent);
-    } else {
-        // For text-only messages
-        messageDiv.textContent = message;
+        type();
     }
     
-    const chatHistoryDiv = document.querySelector('.chat-history');
-    chatHistoryDiv.appendChild(messageDiv);
-    chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
-    
+    // Add a message to the chat history
+    function addMessageToHistory(message, isUser = false, items = null, responseType = null, shouldSave = true, isNewMessage = true) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user-message' : 'assistant-message'}`;
+        
+        if (items && items.length > 0) {
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'message-text';
+            
+            // For user messages or loaded messages, show immediately
+            if (isUser || !isNewMessage) {
+                textDiv.textContent = message;
+            } else {
+                // For new AI messages, show typing animation
+                typeMessage(message, textDiv);
+            }
+            
+            messageContent.appendChild(textDiv);
+            
+            const itemGrid = document.createElement('div');
+            itemGrid.className = 'message-book-grid';
+            
+            const gridTitle = document.createElement('div');
+            gridTitle.className = 'grid-title';
+            
+            if (responseType === 'RESEARCH_RECENT') {
+                gridTitle.textContent = 'Recent Research Papers:';
+            } else if (responseType === 'RESEARCH_ARCHIVE') {
+                gridTitle.textContent = 'Archival Research & Documents:';
+            } else {
+                gridTitle.textContent = 'Book Recommendations:';
+            }
+            
+            messageContent.appendChild(gridTitle);
+            
+            items.forEach(item => {
+                let itemCard;
+                if (responseType === 'RESEARCH_RECENT') {
+                    itemCard = createScholarCard(item);
+                } else if (responseType === 'RESEARCH_ARCHIVE') {
+                    itemCard = createResearchCard(item);
+                } else {
+                    itemCard = createBookCard(item);
+                }
+                itemGrid.appendChild(itemCard);
+            });
+            messageContent.appendChild(itemGrid);
+            
+            messageDiv.appendChild(messageContent);
+        } else {
+            // For text-only messages
+            if (isUser || !isNewMessage) {
+                messageDiv.textContent = message;
+            } else {
+                // For new AI messages, show typing animation
+                typeMessage(message, messageDiv);
+            }
+        }
+        
+        const chatHistoryDiv = document.querySelector('.chat-history');
+        chatHistoryDiv.appendChild(messageDiv);
+        chatHistoryDiv.scrollTop = chatHistoryDiv.scrollHeight;
+        
         // Add to history array
         const messageObj = { message, isUser, items, responseType, timestamp: new Date().toISOString() };
         chatHistory.push(messageObj);
@@ -666,7 +695,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 updated_at: firebase.firestore.Timestamp.now()
             })
             .catch((error) => {
-                console.error('Error saving message:', error);
             });
     }
     
@@ -703,7 +731,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch((error) => {
-                console.error('Error updating chat title:', error);
             });
     }
     
@@ -769,15 +796,14 @@ function handleUserInput() {
         loadingDiv.remove();
         
         if (data.response_type === 'BOOKS' || data.response_type === 'RESEARCH_RECENT' || data.response_type === 'RESEARCH_ARCHIVE') {
-            addMessageToHistory(data.ai_response, false, data.books, data.response_type);
+            addMessageToHistory(data.ai_response, false, data.books, data.response_type, true, true);
         } else {
-            addMessageToHistory(data.ai_response, false);
+            addMessageToHistory(data.ai_response, false, null, null, true, true);
         }
     })
     .catch(error => {
         loadingDiv.remove();
-        addMessageToHistory('Sorry, I encountered an error while processing your request. Please try again.');
-        console.error('Error:', error);
+        addMessageToHistory('Sorry, I encountered an error while processing your request. Please try again.', false, null, null, true, true);
     });
 }
 

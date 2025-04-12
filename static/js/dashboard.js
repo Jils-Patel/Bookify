@@ -1,4 +1,26 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        // Wait for Firebase to be initialized
+        await waitForFirebase();
+        
+        // Initialize Firebase auth state
+        firebase.auth().onAuthStateChanged(function(user) {
+            if (user) {
+                initDashboard();
+            } else {
+                window.location.href = '/login';
+            }
+        });
+    } catch (error) {
+        const errorMsg = document.createElement('div');
+        errorMsg.className = 'error-message';
+        errorMsg.innerHTML = `
+            <i class="fas fa-exclamation-circle"></i>
+            Error initializing the application. Please try refreshing the page.
+        `;
+        document.body.appendChild(errorMsg);
+    }
+    
     // Add styles for the error modal
     const errorModalStyles = `
         .error-modal {
@@ -243,7 +265,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     loadRecentActivity(); // Refresh the recent activity
                 })
                 .catch(error => {
-                    console.error('Error adding book to collection:', error);
                     // Check if this is the book tracking limit error
                     if (error.message && error.message.includes('limit of 5 tracked books')) {
                         showTrackingLimitError(error.message);
@@ -252,7 +273,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 });
         } else {
-            console.error('addBookToCollection function not available');
             showErrorMessage('Could not add to collection. Please try again later.');
         }
     };
@@ -295,17 +315,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.addEventListener('keydown', escHandler);
     }
 
-    // Initialize Firebase auth state
-    firebase.auth().onAuthStateChanged(function(user) {
-        if (user) {
-            console.log('User is signed in');
-            initDashboard();
-        } else {
-            console.log('No user is signed in');
-            window.location.href = '/login';
-        }
-    });
-
     async function initDashboard() {
         try {
             showLoading('Loading your dashboard...');
@@ -322,7 +331,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Check if reading preferences have changed in the settings, forcing a refresh if needed
             const refreshNeeded = await haveReadingPreferencesChanged();
             loadRecommendations(refreshNeeded).catch(error => {
-                console.error('Error loading recommendations:', error);
                 const recommendationsContainer = document.getElementById('recommendationsContainer');
                 if (recommendationsContainer) {
                     recommendationsContainer.innerHTML = '<div class="empty-state"><p>Failed to load recommendations. Please try again later.</p></div>';
@@ -330,7 +338,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             } catch (error) {
-            console.error('Error initializing dashboard:', error);
             showErrorMessage('Failed to load dashboard data. Please try again later.');
             hideLoading();
         }
@@ -341,7 +348,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const currentUser = firebase.auth().currentUser;
     
             if (!currentUser) {
-                console.error('No authenticated user');
                 return;
             }
     
@@ -353,7 +359,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const snapshot = await booksRef.get();
     
             if (snapshot.empty) {
-                console.log('No books found for user.');
                 updateStatsUI(0, 0, 0, 0, 0, 0);
                 updateChartsUI([], []);
                 return;
@@ -390,14 +395,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
     
-            console.log('Stats:', { totalBooks, readingCount, toReadCount, finishedCount, totalPagesRead, totalPagesLeft });
     
             // Update UI elements
             updateStatsUI(totalBooks, readingCount, toReadCount, finishedCount, totalPagesRead, totalPagesLeft);
             updateChartsUI([readingCount, toReadCount, finishedCount], books);
     
         } catch (error) {
-            console.error('Error fetching stats:', error);
             showErrorMessage('Failed to load your reading statistics');
         }
     }
@@ -670,7 +673,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             activityContainer.innerHTML = activitiesHTML;
         } catch (error) {
-            console.error('Error loading recent activity:', error);
             const activityContainer = document.getElementById('recentActivity');
             activityContainer.innerHTML = `
                 <div class="empty-state">
@@ -736,7 +738,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('storage', function(e) {
         // If books or bookTrackerBooks changed, update the dashboard
         if (e.key === 'books' || e.key === 'bookTrackerBooks') {
-            console.log('Detected change in book data, updating dashboard...');
             updateDashboard();
         }
     });
@@ -772,45 +773,33 @@ document.addEventListener('DOMContentLoaded', function() {
             const localStorageBooks = localStorage.getItem('books');
             if (localStorageBooks) {
                 const books = JSON.parse(localStorageBooks);
-                console.log('Loaded books directly from localStorage books key:', books.length);
                 return books;
             }
             
-            // Try Firestore API if no localStorage data
-            console.log('No books in localStorage, trying API endpoint...');
             const response = await fetch('/Get_Books');
             const data = await response.json();
-
-            console.log('Raw API response:', data);
             
             if (data && Array.isArray(data)) {
-                console.log('Loaded books from API:', data.length);
                 // Save to localStorage for future use
                 localStorage.setItem('books', JSON.stringify(data));
                 return data;
             } else {
-                console.error('Error loading books from API: Invalid format', data);
                 // Last resort - try bookTrackerBooks
                 if (useLocalFallback) {
                     const fallbackBooks = localStorage.getItem('bookTrackerBooks');
-                    console.log('Trying bookTrackerBooks as last resort...');
                     if (fallbackBooks) {
                         const parsedBooks = JSON.parse(fallbackBooks);
-                        console.log('Loaded books from bookTrackerBooks:', parsedBooks.length);
                         return parsedBooks;
                     }
                 }
                 return [];
             }
         } catch (error) {
-            console.error('Error fetching books from API:', error);
             // Try bookTrackerBooks as last resort
             if (useLocalFallback) {
-                console.log('Error occurred, trying bookTrackerBooks...');
                 const fallbackBooks = localStorage.getItem('bookTrackerBooks');
                 if (fallbackBooks) {
                     const parsedBooks = JSON.parse(fallbackBooks);
-                    console.log('Loaded books from bookTrackerBooks after error:', parsedBooks.length);
                     return parsedBooks;
                 }
             }
@@ -822,33 +811,25 @@ document.addEventListener('DOMContentLoaded', function() {
     async function loadBooksFromTracker() {
         // First check if tracker.js has a loadBooks function we can call
         if (window.loadBooks) {
-            console.log('Found loadBooks in global scope, calling it...');
             try {
                 await window.loadBooks();
-                console.log('Successfully called loadBooks function');
                 return true;
             } catch (error) {
-                console.error('Error calling loadBooks function:', error);
             }
         }
         
         // Alternatively, try to fetch books directly from the database
         try {
-            console.log('Attempting to load books directly from database...');
             const response = await fetch('/Get_Books');
             const data = await response.json();
 
             if (data && Array.isArray(data) && data.length > 0) {
-                console.log('Successfully loaded books from database:', data.length);
                 // Store in localStorage to make it available for other functions
                 localStorage.setItem('books', JSON.stringify(data));
                 return true;
             }
         } catch (error) {
-            console.error('Error loading books from database:', error);
         }
-        
-        console.warn('Failed to load books from any source');
         return false;
     }
 
@@ -871,7 +852,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Get current user
             const currentUser = firebase.auth().currentUser;
             if (!currentUser) {
-                console.error('No authenticated user');
                 recommendationsContainer.innerHTML = '<div class="empty-state"><p>Please sign in to see personalized recommendations.</p></div>';
                 return;
             }
@@ -898,7 +878,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const shouldRefresh = forceRefresh || !cachedRecommendations || preferencesChanged;
             
             if (!shouldRefresh && cachedRecommendations) {
-                console.log('Using cached recommendations from localStorage');
                 recommendationsContainer.innerHTML = cachedRecommendations;
                 return;
             }
@@ -912,7 +891,6 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             
             let query = currentPreferences;
-            console.log('Using preferences for recommendations:', query);
             
             // Fetch new recommendations
             const recommendResponse = await fetch('/Recommend', {
@@ -946,7 +924,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `;
                 document.body.appendChild(modal);
-                // Clear the recommendations container
                 recommendationsContainer.innerHTML = '';
                 return;
             }
@@ -993,7 +970,6 @@ document.addEventListener('DOMContentLoaded', function() {
             localStorage.setItem('recommendationsLastUpdated', new Date().toISOString());
             
         } catch (error) {
-            console.error('Error loading recommendations:', error);
             recommendationsContainer.innerHTML = '<div class="empty-state"><p>Failed to load recommendations. Please try again later.</p></div>';
         }
     }
@@ -1025,7 +1001,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Return true if preferences have changed
             return cachedPreferences !== currentPreferences;
         } catch (error) {
-            console.error('Error checking reading preferences:', error);
             return true; // Force refresh if there's an error
         }
     }
@@ -1038,7 +1013,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = document.getElementById('activityList');
         
         if (!container) {
-            console.error('activityList container not found');
             return;
         }
         
@@ -1054,7 +1028,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const snapshot = await booksRef.get();
     
             if (snapshot.empty) {
-                console.log('No books found in user collection');
             container.innerHTML = '<p>No activity yet. Add books to your collection!</p>';
             return;
         }
@@ -1100,7 +1073,6 @@ document.addEventListener('DOMContentLoaded', function() {
             container.innerHTML = activities.length > 0 ? activities.join('') : '<p>No recent activity</p>';
             
         } catch (error) {
-            console.error('Error loading recent activity:', error);
             document.getElementById('activityList').innerHTML = '<p>Could not load recent activity. Please try again later.</p>';
         }
     }
@@ -1159,4 +1131,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const messageStyleSheet = document.createElement("style");
     messageStyleSheet.textContent = messageStyles;
     document.head.appendChild(messageStyleSheet);
+
+    try {
+        // Wait for Firebase to be initialized
+        await waitForFirebase();
+        
+        // Initialize the dashboard
+        await initDashboard();
+    } catch (error) {
+        showErrorMessage('Error initializing the application. Please try refreshing the page.');
+    }
 }); 
