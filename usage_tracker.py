@@ -4,8 +4,8 @@ import pytz
 
 # Usage limits for free plan
 FREE_PLAN_LIMITS = {
-    'ai_queries': 3,  # per day
-    'quick_searches': 3,  # per day
+    'ai_queries': 15,  # per day
+    'quick_searches': 15,  # per day
     'max_quick_search_results': 5,
     'max_tracked_books': 5
 }

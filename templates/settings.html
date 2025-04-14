@@ -143,6 +143,51 @@
                                 </form>
                             </div>
                         </div>
+                        
+                        <!-- Usage Tracking Section -->
+                        <div class="settings-card">
+                            <div class="settings-header">
+                                <h2><i class="fas fa-chart-line"></i> Usage</h2>
+                            </div>
+                            <div class="settings-body">
+                                <div class="usage-stats">
+                                    <div class="usage-stat">
+                                        <div class="usage-icon">
+                                            <i class="fas fa-robot"></i>
+                                        </div>
+                                        <div class="usage-details">
+                                            <div class="usage-label">AI Queries</div>
+                                            <div class="usage-value" id="aiQueriesToday">0</div>
+                                            <div class="usage-progress">
+                                                <div class="progress-bar">
+                                                    <div class="progress-fill" id="aiQueriesProgress" style="width: 0%"></div>
+                                                </div>
+                                                <div class="usage-limit">Limit: <span id="aiQueriesLimit">15</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="usage-stat">
+                                        <div class="usage-icon">
+                                            <i class="fas fa-search"></i>
+                                        </div>
+                                        <div class="usage-details">
+                                            <div class="usage-label">Quick Searches</div>
+                                            <div class="usage-value" id="quickSearchesToday">0</div>
+                                            <div class="usage-progress">
+                                                <div class="progress-bar">
+                                                    <div class="progress-fill" id="quickSearchesProgress" style="width: 0%"></div>
+                                                </div>
+                                                <div class="usage-limit">Limit: <span id="quickSearchesLimit">15</span></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!--<div class="usage-note">
+                                    <i class="fas fa-info-circle"></i>
+                                    Usage resets daily at midnight UTC
+                                </div>-->
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -239,7 +284,7 @@
                 if (selectedPlan === 'pro') {
                     try {
                         // Create checkout session
-                        const response = await fetch('/create-checkout-session', {
+                        const response = await fetch('/Create-Checkout-Session', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -268,7 +313,7 @@
                     // Handle downgrade to free plan
                     try {
                         // First, cancel the subscription in Stripe if it exists
-                        const cancelResponse = await fetch('/cancel-subscription', {
+                        const cancelResponse = await fetch('/Cancel-Subscription', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -450,19 +495,26 @@
                 firebase.auth().currentUser.getIdToken(true)
                     .then(idToken => {
                         // Use the token in the request
-                        return fetch('/Get_Settings', {
-                            headers: {
-                                'Authorization': `Bearer ${idToken}`
-                            }
-                        });
+                        return Promise.all([
+                            fetch('/Get_Settings', {
+                                headers: {
+                                    'Authorization': `Bearer ${idToken}`
+                                }
+                            }),
+                            fetch('/Get_Usage', {
+                                headers: {
+                                    'Authorization': `Bearer ${idToken}`
+                                }
+                            })
+                        ]);
                     })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! Status: ${response.status}`);
+                    .then(([settingsResponse, usageResponse]) => {
+                        if (!settingsResponse.ok || !usageResponse.ok) {
+                            throw new Error('Failed to fetch data');
                         }
-                        return response.json();
+                        return Promise.all([settingsResponse.json(), usageResponse.json()]);
                     })
-                    .then(settings => {
+                    .then(([settings, usage]) => {
                         // Remove loading indicator
                         loadingMsg.remove();
                         
@@ -471,6 +523,14 @@
                             document.getElementById('readingPreferences').value = settings.reading_preferences;
                         }
                         
+                        // Update usage stats and progress bars
+                        const aiQueriesToday = usage.ai_queries_today || 0;
+                        const quickSearchesToday = usage.quick_searches_today || 0;
+                        
+                        document.getElementById('aiQueriesToday').textContent = aiQueriesToday;
+                        document.getElementById('quickSearchesToday').textContent = quickSearchesToday;
+                        
+                        // Update plan display and limits
                         if (settings.subscription_plan) {
                             // Remove selected class from all plans
                             document.querySelectorAll('.plan-option').forEach(function(p) {
@@ -483,54 +543,36 @@
                                 planElement.classList.add('selected');
                             }
                             
-                            // Update plan display
-                            let planName, planPrice, planFeatures;
+                            // Update plan display and limits
+                            let planName, planPrice, aiQueriesLimit, quickSearchesLimit;
                             
-                            switch(settings.subscription_plan) {
-                                case 'free':
-                                    planName = 'Free Plan';
-                                    planPrice = '$0/month';
-                                    planFeatures = [
-                                        '<i class="fas fa-check-circle"></i> <b>5</b>&nbsp;AI Queries Daily',
-                                        '<i class="fas fa-check-circle"></i> Top&nbsp;<b>5</b>&nbsp;Results for Quick Search',
-                                        '<i class="fas fa-check-circle"></i> Track up to&nbsp;<b>5</b>&nbsp;Books',
-                                        '<i class="fas fa-check-circle"></i> <b>Limited</b>&nbsp;Archive and Research'
-                                    ];
-                                    break;
-                                case 'pro':
-                                    planName = 'Pro Plan';
-                                    planPrice = '$1.99/month';
-                                    planFeatures = [
-                                        '<i class="fas fa-check-circle"></i> <b>Unlimited</b>&nbsp;AI Queries',
-                                        '<i class="fas fa-check-circle"></i> Up to&nbsp;<b>25</b>&nbsp;Results for Quick Search',
-                                        '<i class="fas fa-check-circle"></i> Track up to&nbsp;<b>50</b>&nbsp;Books',
-                                        '<i class="fas fa-check-circle"></i> <b>Full</b>&nbsp;Archive and Research Access'
-                                    ];
-                                    break;
-                                default:
-                                    planName = 'Free Plan';
-                                    planPrice = '$0/month';
-                                    planFeatures = [
-                                        '<i class="fas fa-check-circle"></i> <b>5</b>&nbsp;AI Queries Daily',
-                                        '<i class="fas fa-check-circle"></i> Top&nbsp;<b>5</b>&nbsp;Results for Quick Search',
-                                        '<i class="fas fa-check-circle"></i> Track up to&nbsp;<b>5</b>&nbsp;Books',
-                                        '<i class="fas fa-check-circle"></i> <b>Limited</b>&nbsp;Archive and Research'
-                                    ];
+                            if (settings.subscription_plan === 'pro') {
+                                planName = 'Pro Plan';
+                                planPrice = '$1.99/month';
+                                aiQueriesLimit = 'Unlimited';
+                                quickSearchesLimit = 'Unlimited';
+                            } else {
+                                planName = 'Free Plan';
+                                planPrice = '$0/month';
+                                aiQueriesLimit = '15';
+                                quickSearchesLimit = '15';
                             }
                             
-                            // Update the display
                             document.getElementById('currentPlan').textContent = planName;
                             document.getElementById('currentPrice').textContent = planPrice;
+                            document.getElementById('aiQueriesLimit').textContent = aiQueriesLimit;
+                            document.getElementById('quickSearchesLimit').textContent = quickSearchesLimit;
                             
-                            // Update plan features list
-                            const featuresList = document.getElementById('planFeatures');
-                            if (featuresList) {
-                                featuresList.innerHTML = '';
-                                planFeatures.forEach(feature => {
-                                    const li = document.createElement('li');
-                                    li.innerHTML = feature;
-                                    featuresList.appendChild(li);
-                                });
+                            // Update progress bars
+                            if (settings.subscription_plan === 'pro') {
+                                document.getElementById('aiQueriesProgress').style.width = '100%';
+                                document.getElementById('quickSearchesProgress').style.width = '100%';
+                            } else {
+                                const aiQueriesPercentage = Math.min((aiQueriesToday / 15) * 100, 100);
+                                const quickSearchesPercentage = Math.min((quickSearchesToday / 15) * 100, 100);
+                                
+                                document.getElementById('aiQueriesProgress').style.width = `${aiQueriesPercentage}%`;
+                                document.getElementById('quickSearchesProgress').style.width = `${quickSearchesPercentage}%`;
                             }
                         }
                     })

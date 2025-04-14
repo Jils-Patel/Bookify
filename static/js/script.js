@@ -68,7 +68,7 @@ function showTrackingLimitError(message) {
                 <p>${message}</p>
             </div>
             <div class="error-modal-footer">
-                <a href="/settings" class="upgrade-button">Upgrade to Pro</a>
+                <a href="/Settings" class="upgrade-button">Upgrade to Pro</a>
             </div>
         </div>
     `;

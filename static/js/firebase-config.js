@@ -108,7 +108,7 @@ async function addBookToCollection(bookData) {
             resolve(data.id);
             })
         .catch(error => {
-                showErrorMessage(`Error adding to collection: ${error.message}`);
+                //showErrorMessage(`Error adding to collection: ${error.message}`);
                 reject(error);
             });
     });

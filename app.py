@@ -544,7 +544,7 @@ def recommend():
     # Check if user has reached their AI query limit
     if not check_usage_limit(session['user']['email'], 'ai_query'):
         return jsonify({
-            'ai_response': "You've reached your daily limit of 3 AI queries. Upgrade to Pro for unlimited access!",
+            'ai_response': "You've reached your limit of 15 AI queries. Upgrade to Pro for unlimited access!",
             'books': [],
             'response_type': 'ERROR'
         }), 403
@@ -981,7 +981,7 @@ def quick_search_results():
     # Check if user has reached their quick search limit
     if not check_usage_limit(session['user']['email'], 'quick_search'):
         return jsonify({
-            'error': "You've reached your daily limit of 3 quick searches. Upgrade to Pro for unlimited access!"
+            'error': "You've reached your limit of 15 quick searches. Upgrade to Pro for unlimited access!"
         }), 403
 
     try:
@@ -1077,6 +1077,43 @@ def get_settings():
         print(f"Error in get_settings: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/Get_Usage', methods=['GET'])
+def get_usage():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        id_token = request.cookies.get('userIdToken')
+        if not id_token:
+            return jsonify({'error': 'Unauthorized - No valid authentication provided'}), 401
+    else:
+        id_token = auth_header.split('Bearer ')[1]
+
+    try:
+        decoded_token = auth.verify_id_token(id_token)
+        email = decoded_token.get('email', '')
+        
+        # Get usage data from Usage collection
+        usage_ref = db.collection('Usage').where('email', '==', email).limit(1)
+        usage_docs = usage_ref.get()
+        
+        if len(usage_docs) > 0:
+            usage = usage_docs[0].to_dict()
+            return jsonify({
+                'ai_queries_today': usage.get('ai_queries_today', 0),
+                'quick_searches_today': usage.get('quick_searches_today', 0),
+                'last_update': usage.get('last_update', '')
+            })
+        else:
+            # Return default values if no usage record exists
+            return jsonify({
+                'ai_queries_today': 0,
+                'quick_searches_today': 0,
+                'last_update': ''
+            })
+
+    except Exception as e:
+        print(f"Error in get_usage: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/Update_Settings', methods=['POST'])
 def update_settings():
     auth_header = request.headers.get('Authorization')
@@ -1133,7 +1170,7 @@ def create_checkout_session():
     except Exception as e:
         return jsonify({'error': str(e)}), 400
 
-@app.route('/Payment-Success')
+@app.route('/payment-success')
 @login_required
 def payment_success():
     session_id = request.args.get('session_id')
