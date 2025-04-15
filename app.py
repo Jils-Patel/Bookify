@@ -493,10 +493,6 @@ def logout():
     session.clear()
     return redirect(url_for('home'))
 
-@app.route('/__/auth/handler')
-def firebase_auth_handler():
-    return send_from_directory('static/__/auth', 'handler.html')
-
 @app.route('/')
 def home():
     if 'user' in session:
