@@ -1295,3 +1295,63 @@ body:not(.app-layout) {
         font-size: 1rem;
     }
 }
+
+/* Contact Us Section Styles */
+.contact-section {
+    background: #f8f9fa;
+    padding: 60px 0;
+    text-align: center;
+}
+
+.contact-section a {
+    color: #4299e1;
+}
+
+.contact-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.contact-message {
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+.contact-details {
+    margin-bottom: 30px;
+}
+
+.contact-details p.contact-email {
+    font-size: 1.15rem;
+    color: #333;
+    margin-bottom: 15px;
+}
+
+.contact-details p.contact-email a {
+    font-size: 1.15rem;
+    color: #4299e1;
+    text-decoration: none;
+}
+
+.contact-details p.contact-email a:hover {
+    text-decoration: underline;
+}
+
+.email-button {
+    background-color: #4299e1;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.email-button:hover {
+    background-color: #3182ce;
+}
