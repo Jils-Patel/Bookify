@@ -180,93 +180,98 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Please select a search source');
             return;
         }
-
+    
         if (!searchQuery.value.trim()) {
             showErrorMessageAuth('Please enter a search query!');
             return;
         }
-
+    
         spinner.style.display = 'block';
         searchResults.innerHTML = '';
-
+    
         const params = new URLSearchParams({
             source: searchSource.value,
             query: searchQuery.value.trim(),
             max_results: maxResults.value
         });
-
+    
         try {
             const response = await fetch(`/Quick_Search/Results?${params.toString()}`);
-            
+    
             if (response.status === 403) {
                 const data = await response.json();
                 showErrorMessage(data.error);
                 spinner.style.display = 'none';
                 return;
             }
-            
+    
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
-            
+    
             const data = await response.json();
-
-            spinner.style.display = 'none';
-            const resultsHtml = await Promise.all(data.map(async (item) => {
-                let imageUrl;
-                if (item.cover_url) {
-                    const imageExists = await checkImage(item.cover_url);
-                    imageUrl = imageExists ? item.cover_url : 
-                        (searchSource.value === 'books' ? '/static/images/book-placeholder.svg' : '/static/images/paper-placeholder.png');
-                } else {
-                    imageUrl = searchSource.value === 'books' ? '/static/images/book-placeholder.svg' : '/static/images/paper-placeholder.png';
-                }
-                const cleanItem = {...item};
-                
-                if (cleanItem.cover_url) {
-                    cleanItem.cover_url = cleanItem.cover_url.replace(/\s+/g, '');
-                }
-                if (cleanItem.reading_url) {
-                    cleanItem.reading_url = cleanItem.reading_url.replace(/\s+/g, '');
-                }
-                if (cleanItem.buy_link) {
-                    cleanItem.buy_link = cleanItem.buy_link.replace(/\s+/g, '');
-                }
-                if (cleanItem.description) {
-                    cleanItem.description = cleanItem.description.replace(/\r\n/g, '\n').replace(/"/g, '&quot;');
-                }
-                if (cleanItem.recommendation) {
-                    cleanItem.recommendation = cleanItem.recommendation.replace(/\r\n/g, '\n').replace(/"/g, '&quot;');
-                }
-                const itemData = encodeURIComponent(JSON.stringify(cleanItem));
-                
-                return `
-                    <div class="result-card" data-item="${itemData}" data-source="${searchSource.value}">
-                        <img src="${imageUrl}" 
-                             alt="${cleanItem.title}"
-                             onerror="this.src='${searchSource.value === 'books' ? '/static/images/book-placeholder.svg' : '/static/images/paper-placeholder.png'}'">
-                        <div class="info">
-                            <div class="title">${cleanItem.title}</div>
-                            <div class="author">${Array.isArray(cleanItem.authors) ? cleanItem.authors.join(', ') : cleanItem.author || 'Unknown Author'}</div>
-                        </div>
-                    </div>
-                `;
-            }));
-
-            searchResults.innerHTML = resultsHtml.join('');
-
-            // Add click event listeners to all result cards
-            document.querySelectorAll('.result-card').forEach(card => {
-                card.addEventListener('click', function() {
-                    try {
-                        const itemData = JSON.parse(decodeURIComponent(this.getAttribute('data-item')));
-                        const source = this.getAttribute('data-source');
-                        showDetails(itemData, source);
-                    } catch (error) {
+    
+            spinner.style.display = 'none'; // Hide spinner after response
+    
+            if (data && data.length > 0) {
+                const resultsHtml = await Promise.all(data.map(async (item) => {
+                    let imageUrl;
+                    if (item.cover_url) {
+                        const imageExists = await checkImage(item.cover_url);
+                        imageUrl = imageExists ? item.cover_url :
+                            (searchSource.value === 'books' ? '/static/images/book-placeholder.svg' : '/static/images/paper-placeholder.png');
+                    } else {
+                        imageUrl = searchSource.value === 'books' ? '/static/images/book-placeholder.svg' : '/static/images/paper-placeholder.png';
                     }
+                    const cleanItem = {...item};
+    
+                    if (cleanItem.cover_url) {
+                        cleanItem.cover_url = cleanItem.cover_url.replace(/\s+/g, '');
+                    }
+                    if (cleanItem.reading_url) {
+                        cleanItem.reading_url = cleanItem.reading_url.replace(/\s+/g, '');
+                    }
+                    if (cleanItem.buy_link) {
+                        cleanItem.buy_link = cleanItem.buy_link.replace(/\s+/g, '');
+                    }
+                    if (cleanItem.description) {
+                        cleanItem.description = cleanItem.description.replace(/\r\n/g, '\n').replace(/"/g, '&quot;');
+                    }
+                    if (cleanItem.recommendation) {
+                        cleanItem.recommendation = cleanItem.recommendation.replace(/\r\n/g, '\n').replace(/"/g, '&quot;');
+                    }
+                    const itemData = encodeURIComponent(JSON.stringify(cleanItem));
+    
+                    return `
+                        <div class="result-card" data-item="${itemData}" data-source="${searchSource.value}">
+                            <img src="${imageUrl}"
+                                 alt="${cleanItem.title}"
+                                 onerror="this.src='${searchSource.value === 'books' ? '/static/images/book-placeholder.svg' : '/static/images/paper-placeholder.png'}'">
+                            <div class="info">
+                                <div class="title">${cleanItem.title}</div>
+                                <div class="author">${Array.isArray(cleanItem.authors) ? cleanItem.authors.join(', ') : cleanItem.author || 'Unknown Author'}</div>
+                            </div>
+                        </div>
+                    `;
+                }));
+    
+                searchResults.innerHTML = resultsHtml.join('');
+    
+                // Add click event listeners to all result cards
+                document.querySelectorAll('.result-card').forEach(card => {
+                    card.addEventListener('click', function() {
+                        try {
+                            const itemData = JSON.parse(decodeURIComponent(this.getAttribute('data-item')));
+                            const source = this.getAttribute('data-source');
+                            showDetails(itemData, source);
+                        } catch (error) {
+                        }
+                    });
                 });
-            });
-
+            } else {
+                showErrorMessageAuth("No results found! Try using more specific terms or reducing the number of requests.")
+            }
+    
         } catch (error) {
             spinner.style.display = 'none';
             searchResults.innerHTML = '<p class="error-message">An error occurred while searching. Please try again.</p>';
