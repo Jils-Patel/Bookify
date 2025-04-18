@@ -1059,3 +1059,44 @@ textarea.form-input {
     border-radius: 0 8px 0 0;
     z-index: 1;
 } 
+
+.download-notes-pdf {
+    margin-left: 8px;
+    font-size: 0.9em;
+    color: #2d3748; /* Or any color you prefer */
+}
+
+.download-notes-pdf:hover {
+    color: #4299e1; /* A slightly different color on hover */
+}
+
+.book-detail-notes ul {
+  list-style-type: disc !important; /* Force bullet points */
+  padding-left: 1.5em; /* Adjust indentation */
+  margin-left: 0; /* Reset default margin */
+}
+
+.book-detail-notes ul li {
+  margin-bottom: 0.2em; /* Space between list items */
+}
+
+.book-detail-notes ol {
+  list-style-type: decimal !important; /* Ensure ordered lists are numbers if you use them */
+  padding-left: 1.5em;
+  margin-left: 0;
+}
+
+.book-detail-notes ol li {
+  margin-bottom: 0.2em;
+}
+
+/* Handle nested lists for better visual appearance */
+.book-detail-notes ul ul {
+  list-style-type: circle !important;
+  margin-left: 1em;
+}
+
+.book-detail-notes ul ul ul {
+  list-style-type: square !important;
+  margin-left: 1em;
+}
