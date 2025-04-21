@@ -1,0 +1,319 @@
+<!-- Quick Search Modal -->
+<div id="searchModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Quick Search</h2>
+        <div class="search-container">
+            <input type="text" id="quickSearchInput" placeholder="Search for books...">
+            <button id="quickSearchButton">Search</button>
+        </div>
+        <div id="searchResults"></div>
+    </div>
+</div>
+
+<script>
+    // Quick Search Modal Functions
+    const searchModal = document.getElementById('searchModal');
+    const searchInput = document.getElementById('quickSearchInput');
+    const searchButton = document.getElementById('quickSearchButton');
+    const resultsContainer = document.getElementById('searchResults');
+    const closeButton = document.querySelector('.modal .close');
+    
+    // Open the modal and focus on the input
+    function openSearchModal() {
+        searchModal.style.display = 'block';
+        searchInput.focus();
+    }
+    
+    // Close the modal
+    function closeSearchModal() {
+        searchModal.style.display = 'none';
+    }
+    
+    // Handle search submission
+    function handleSearch() {
+        const query = searchInput.value.trim();
+        if (query.length === 0) return;
+        
+        resultsContainer.innerHTML = '<div class="loading">Searching...</div>';
+        
+        // Make the API call
+        fetch(`/api/search?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                displaySearchResults(data);
+            })
+            .catch(error => {
+                resultsContainer.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            });
+    }
+    
+    // Display search results
+    function displaySearchResults(data) {
+        resultsContainer.innerHTML = '';
+        
+        if (!data || data.length === 0) {
+            resultsContainer.innerHTML = '<p>No results found. Try a different search term.</p>';
+            return;
+        }
+        
+        // Create a container for the results
+        const resultsGrid = document.createElement('div');
+        resultsGrid.className = 'search-results-grid';
+        
+        // Add each book to the grid
+        data.forEach(book => {
+            const bookCard = createBookCard(book);
+            resultsGrid.appendChild(bookCard);
+        });
+        
+        resultsContainer.appendChild(resultsGrid);
+    }
+    
+    // Create a book card for the search results
+    function createBookCard(book) {
+        const card = document.createElement('div');
+        card.className = 'book-card';
+        
+        // Book cover
+        const coverImg = document.createElement('img');
+        coverImg.className = 'book-cover';
+        coverImg.src = book.cover_url || '/static/images/default-cover.jpg';
+        coverImg.alt = `Cover for ${book.title}`;
+        coverImg.onerror = function() {
+            this.src = '/static/images/default-cover.jpg';
+        };
+        
+        // Book info container
+        const infoContainer = document.createElement('div');
+        infoContainer.className = 'book-info';
+        
+        // Title
+        const title = document.createElement('h3');
+        title.className = 'book-title';
+        title.textContent = book.title;
+        
+        // Author
+        const author = document.createElement('p');
+        author.className = 'book-author';
+        author.textContent = formatAuthorName(book.author);
+        
+        // Action buttons container
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.className = 'book-actions';
+        
+        // Read online button (OpenLibrary)
+        const readButton = document.createElement('a');
+        readButton.className = 'read-button';
+        readButton.href = `https://openlibrary.org/search?q=${encodeURIComponent(book.title)}&mode=everything`;
+        readButton.textContent = 'Find on OpenLibrary';
+        readButton.target = '_blank';
+        buttonsContainer.appendChild(readButton);
+        
+        // Add to collection button
+        const addButton = document.createElement('button');
+        addButton.className = 'add-button';
+        addButton.textContent = 'Add to Collection';
+        addButton.onclick = function() {
+            addToCollection(book);
+        };
+        buttonsContainer.appendChild(addButton);
+        
+        // Assemble the card
+        infoContainer.appendChild(title);
+        infoContainer.appendChild(author);
+        infoContainer.appendChild(buttonsContainer);
+        
+        card.appendChild(coverImg);
+        card.appendChild(infoContainer);
+        
+        return card;
+    }
+    
+    // Format author name function
+    function formatAuthorName(author) {
+        if (!author) return 'Unknown Author';
+        if (Array.isArray(author)) {
+            return author.join(', ');
+        }
+        return author;
+    }
+    
+    // Add to collection function
+    function addToCollection(book) {
+        // This will be implemented later
+        alert(`Added ${book.title} to your collection!`);
+    }
+    
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        // Search button click
+        searchButton.addEventListener('click', handleSearch);
+        
+        // Enter key in search input
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                handleSearch();
+            }
+        });
+        
+        // Close button click
+        closeButton.addEventListener('click', closeSearchModal);
+        
+        // Click outside to close
+        window.addEventListener('click', function(e) {
+            if (e.target === searchModal) {
+                closeSearchModal();
+            }
+        });
+    });
+</script>
+
+<style>
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+    }
+    
+    .modal-content {
+        position: relative;
+        background-color: #fff;
+        margin: 5% auto;
+        padding: 20px;
+        width: 80%;
+        max-width: 900px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .close {
+        position: absolute;
+        right: 20px;
+        top: 10px;
+        font-size: 28px;
+        font-weight: bold;
+        color: #666;
+        cursor: pointer;
+    }
+    
+    /* Search Form Styles */
+    .search-container {
+        display: flex;
+        margin-bottom: 20px;
+    }
+    
+    #quickSearchInput {
+        flex: 1;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 4px 0 0 4px;
+    }
+    
+    #quickSearchButton {
+        padding: 10px 20px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 0 4px 4px 0;
+        cursor: pointer;
+        font-weight: bold;
+    }
+    
+    /* Search Results Styles */
+    .search-results-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 20px;
+    }
+    
+    .book-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: #fff;
+        transition: all 0.3s ease;
+    }
+    
+    .book-card.expanded {
+        grid-column: span 2;
+    }
+    
+    .book-cover {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .book-info {
+        padding: 15px;
+    }
+    
+    .book-title {
+        margin: 0 0 5px 0;
+        font-size: 16px;
+    }
+    
+    .book-author {
+        margin: 0 0 15px 0;
+        color: #666;
+        font-size: 14px;
+    }
+    
+    .book-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .read-button, .add-button, .expand-button {
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 14px;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+    }
+    
+    .read-button {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+    }
+    
+    .add-button {
+        background-color: #ff9800;
+        color: white;
+        border: none;
+    }
+    
+    .expand-button {
+        background-color: #2196F3;
+        color: white;
+        border: none;
+    }
+    
+    /* Loading and Error Styles */
+    .loading {
+        text-align: center;
+        padding: 20px;
+        color: #666;
+    }
+    
+    .error {
+        color: #f44336;
+        padding: 10px;
+        background-color: #ffebee;
+        border-radius: 4px;
+    }
+</style> 

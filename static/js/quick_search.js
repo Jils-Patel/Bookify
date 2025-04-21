@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.showDetails = function(item, source) {
         let content;
         
-        if (source === 'books') {
+        if (source === 'books' || source === 'google_books') {
             const subjectsHtml = item.subjects && item.subjects.length > 0 
                 ? `<div class="modal-book-subjects">
                     ${item.subjects.map(subject => `<span class="subject-tag">${subject}</span>`).join('')}
@@ -303,7 +303,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     </a>
                    </div>`
                 : '';
-            
+
+            const ratingsHtml = item.average_rating
+                ? `<div class="ratings-section">
+                    <div class="stars">
+                        ${'★'.repeat(Math.round(item.average_rating))}${'☆'.repeat(5 - Math.round(item.average_rating))}
+                    </div>
+                    <div class="ratings-count">
+                        ${item.ratings_count} ratings
+                    </div>
+                   </div>`
+                : '';
+
             content = `
                 <div class="modal-book-info">
                     <div class="modal-book-cover">
@@ -316,9 +327,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="action-buttons">
                             ${readOnlineHtml}
                             ${buyButtonHtml}
-                            <button class="add-to-collection-btn" onclick="addToCollection(${JSON.stringify(item).replace(/"/g, '&quot;')}, 'book')">
+                            <button class="add-to-collection-btn" onclick="addToCollection(JSON.parse(decodeURIComponent(this.getAttribute('data-item'))), 'book')" data-item="${encodeURIComponent(JSON.stringify(item))}">
                                 <i class="fas fa-plus"></i> Add to Collection
                             </button>
+
+
                         </div>
                     </div>
                     <div class="modal-book-details">
@@ -327,6 +340,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <p>by ${item.author}</p>
                             <p>Published: ${item.year || 'Unknown'}</p>
                         </div>
+                        ${ratingsHtml}
                         ${subjectsHtml}
                         <div class="modal-book-recommendation">
                             <h3>Summary</h3>
@@ -335,7 +349,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             `;
-        } else if (source === 'recent_research' || source === 'semantic_scholar') {
+        } else if (source === 'research' ||source === 'recent_research' || source === 'semantic_scholar') {
             const citationHtml = item.citation_count > 0 
                 ? `<div class="citation-stats">
                     <span class="citation-count">
@@ -364,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </a>
                    </div>`
                 : '';
-            
+
             content = `
                 <div class="modal-book-info">
                     <div class="modal-book-cover">
@@ -503,7 +517,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     window.addToCollection = function(item, type) {
-        
         const bookData = {
             title: item.title,
             author: item.author || (Array.isArray(item.authors) ? item.authors.join(', ') : item.all_authors),

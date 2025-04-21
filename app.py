@@ -12,6 +12,8 @@ import firebase_admin.firestore as firestore_utils
 from dotenv import load_dotenv
 import stripe
 from usage_tracker import check_usage_limit, update_user_usage, check_book_tracking_limit, get_quick_search_limit
+from bs4 import BeautifulSoup
+from urllib.parse import quote_plus
 
 # Load environment variables from .env file in development
 if os.path.exists('.env'):
@@ -160,11 +162,11 @@ def get_book_descriptions(user_input, book_results):
         has_ebook = doc.get('has_fulltext', False)
         ia_id = doc.get('ia', [None])[0] if isinstance(doc.get('ia'), list) and doc.get('ia') else None
         
-        reading_url = None
-        if has_ebook and ia_id:
-            reading_url = f"https://archive.org/details/{ia_id}"
-        elif olid:
-            reading_url = f"https://openlibrary.org/works/{olid}"
+        #reading_url = None
+        #if has_ebook and ia_id:
+        #    reading_url = f"https://archive.org/details/{ia_id}"
+        #elif olid:
+        #    reading_url = f"https://openlibrary.org/works/{olid}"
         
         isbn = None
         buy_link = None
@@ -177,6 +179,8 @@ def get_book_descriptions(user_input, book_results):
         title = doc.get('title', 'Unknown Title')
         author = doc.get('author_name', ['Unknown Author'])[0] if doc.get('author_name') else 'Unknown Author'
         
+        reading_url = f"https://openlibrary.org/search?q={quote_plus(title)}&mode=everything"
+
         if isbn:
             buy_link = f"https://www.amazon.com/s?k={isbn}"
         else:
@@ -439,6 +443,94 @@ def get_semantic_scholar_details(papers):
     
     return paper_info
 
+def search_google_books(query, max_results=10):
+
+    search_terms = extract_search_terms_with_gpt(query)
+    
+    if not search_terms:
+        search_terms = query
+    
+    try:
+        base_url = "https://www.googleapis.com/books/v1/volumes"
+        params = {
+            'q': search_terms,
+            'maxResults': max_results,
+            'printType': 'books'
+        }
+        
+        response = requests.get(base_url, params=params)
+        if response.status_code != 200:
+            return []
+            
+        data = response.json()
+        books = []
+        
+        for item in data.get('items', []):
+            volume_info = item.get('volumeInfo', {})
+            sale_info = item.get('saleInfo', {})
+            access_info = item.get('accessInfo', {})
+            
+            # Get basic book info
+            title = volume_info.get('title', 'Unknown Title')
+            authors = volume_info.get('authors', ['Unknown Author'])
+            author = authors[0] if authors else 'Unknown Author'
+            year = volume_info.get('publishedDate', 'Unknown').split('-')[0]
+            description = volume_info.get('description', 'No description available.')
+            
+            # Get cover image
+            cover_url = None
+            if 'imageLinks' in volume_info:
+                cover_url = volume_info['imageLinks'].get('thumbnail', '').replace('http://', 'https://')
+            
+            # Get reading URL with verification
+            reading_url = None
+            if access_info.get('accessViewStatus') == 'FULL_PUBLIC_DOMAIN':
+                # For public domain books, use Google Books preview
+                reading_url = f"https://books.google.com/books?id={item['id']}&hl=en"
+            elif access_info.get('accessViewStatus') == 'SAMPLE':
+                # For books with preview available
+                reading_url = f"https://books.google.com/books?id={item['id']}&hl=en"
+            elif 'webReaderLink' in access_info:
+                # Verify the web reader link works
+                try:
+                    web_reader_response = requests.head(access_info['webReaderLink'], allow_redirects=True, timeout=5)
+                    if web_reader_response.status_code == 200:
+                        reading_url = access_info['webReaderLink']
+                    else:
+                        # If web reader link fails, try the preview URL
+                        reading_url = f"https://books.google.com/books?id={item['id']}&hl=en"
+                except:
+                    # If there's any error, use the preview URL
+                    reading_url = f"https://books.google.com/books?id={item['id']}&hl=en"
+            
+            # Get buy link
+            search_query = f"{title} {author}".replace(" ", "+")
+            buy_link = f"https://www.amazon.com/s?k={search_query}"
+            
+            # Get ratings
+            ratings = volume_info.get('averageRating', 0)
+            ratings_count = volume_info.get('ratingsCount', 0)
+            
+            book = {
+                'title': title,
+                'author': author,
+                'authors': authors,
+                'year': year,
+                'description': description,
+                'cover_url': cover_url,
+                'reading_url': reading_url,
+                'buy_link': buy_link,
+                'average_rating': ratings,
+                'ratings_count': ratings_count,
+                'has_ebook': reading_url is not None
+            }
+            books.append(book)
+            
+        return books
+    except Exception as e:
+        print(f"Error searching Google Books: {str(e)}")
+        return []
+
 @app.route('/Login')
 def login():
     return render_template('login.html')
@@ -541,6 +633,19 @@ def recommend():
     max_results = data.get('max_results', 5)
     conversation_context = data.get('conversation_context', [])
     
+    # Get user's preferred sources from settings
+    user_email = session['user']['email']
+    settings_ref = db.collection('Settings').where('email', '==', user_email).limit(1)
+    settings_docs = settings_ref.get()
+    
+    if len(settings_docs) == 0:
+        book_source = 'open_library'
+        research_source = 'semantic_scholar'
+    else:
+        settings = settings_docs[0].to_dict()
+        book_source = settings.get('book_source', 'open_library')
+        research_source = settings.get('research_source', 'semantic_scholar')
+    
     # Check if user has reached their AI query limit
     if not check_usage_limit(session['user']['email'], 'ai_query'):
         return jsonify({
@@ -558,14 +663,11 @@ def recommend():
             {"role": "system", "content": """You are an AI that determines if a user's message requires book recommendations, research papers, or just a text response.
             Respond with exactly ONE of these formats:
             - 'BOOKS' if the user is asking for fiction or general book recommendations
-            - 'RESEARCH_RECENT' if the user is asking for recent/current academic papers, latest research, or new scholarly content
-            - 'RESEARCH_ARCHIVE' if the user is asking for historical research, older papers, or classic academic works
-            - 'TEXT' if the user is asking a general question or making a comment
             - 'BOOKS_WITH_COUNT X' if the user is specifically asking for X number of book recommendations
-            - 'RESEARCH_RECENT_WITH_COUNT X' if the user is specifically asking for X number of recent research papers
-            - 'RESEARCH_ARCHIVE_WITH_COUNT X' if the user is specifically asking for X number of older/archived research papers
+            - 'RESEARCH' if the user is asking for recent/current academic papers, latest research, new scholarly content, historical research, older papers, or classic academic works
+            - 'RESEARCH_WITH_COUNT X' if the user is specifically asking for X number of  research papers
+            - 'TEXT' if the user is asking a general question or making a comment
             
-            If you're unsure whether research is recent or archived, default to 'RESEARCH_RECENT'.
             Only respond with exactly one of these formats, nothing else."""}
         ]
         
@@ -591,14 +693,8 @@ def recommend():
                 max_results = int(intent_check.split()[1])
             except:
                 max_results = 5
-        elif intent_check.startswith('RESEARCH_RECENT_WITH_COUNT'):
-            response_type = 'RESEARCH_RECENT'
-            try:
-                max_results = int(intent_check.split()[1])
-            except:
-                max_results = 5
-        elif intent_check.startswith('RESEARCH_ARCHIVE_WITH_COUNT'):
-            response_type = 'RESEARCH_ARCHIVE'
+        elif intent_check.startswith('RESEARCH_WITH_COUNT'):
+            response_type = 'RESEARCH'
             try:
                 max_results = int(intent_check.split()[1])
             except:
@@ -607,56 +703,126 @@ def recommend():
             response_type = intent_check
 
         if response_type == 'BOOKS':
-            # Get book recommendations
-            book_results = search_open_library(user_input, max_results=max_results)
-            _, books_info = get_book_descriptions(user_input, book_results)
 
-            # Prepare messages for AI response
-            ai_messages = [
-                {"role": "system", "content": "You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses concise (1-2 sentences) and conversational."}
-            ]
-            
-            # Add conversation history if available
-            if conversation_context:
-                ai_messages.extend(conversation_context[-5:])
-            
-            # Add current context and books
-            ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Books: {book_results}\n Book Info: {books_info}\n You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses to 1-2 sentences and conversational. Don't list the books out unless the user has a question about it."})
+            if book_source == 'open_library':
+                # Get book recommendations
+                book_results = search_open_library(user_input, max_results=max_results)
+                _, books_info = get_book_descriptions(user_input, book_results)
 
-            ai_response = openai.ChatCompletion.create(
-                model="gpt-4o-mini",
-                messages=ai_messages,
-                max_tokens=150,
-                temperature=0.7
-            ).choices[0].message['content']
-            
-            return jsonify({
-                'ai_response': ai_response,
-                'books': books_info,
-                'response_type': 'BOOKS'
-            })
-        elif response_type == 'RESEARCH_RECENT':
-            try:
-                papers = search_semantic_scholar(user_input, max_results=max_results)
+                # Prepare messages for AI response
+                ai_messages = [
+                    {"role": "system", "content": "You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses concise (1-2 sentences) and conversational."}
+                ]
                 
-                if papers is None:
-                    papers = []
-                    print("Warning: search_semantic_scholar returned None")
+                # Add conversation history if available
+                if conversation_context:
+                    ai_messages.extend(conversation_context[-5:])
                 
-                research_info = get_semantic_scholar_details(papers)
+                # Add current context and books
+                ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Books: {book_results}\n Book Info: {books_info}\n You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses to 1-2 sentences and conversational. Don't list the books out unless the user has a question about it."})
+
+                ai_response = openai.ChatCompletion.create(
+                    model="gpt-4o-mini",
+                    messages=ai_messages,
+                    max_tokens=150,
+                    temperature=0.7
+                ).choices[0].message['content']
                 
-                if not research_info or len(research_info) == 0:
+                return jsonify({
+                    'ai_response': ai_response,
+                    'books': books_info,
+                    'response_type': 'BOOKS'
+                })
+            elif book_source == 'google_books':
+                books = search_google_books(user_input, max_results=max_results)
+                books_info = []
+                for book in books:
+                    books_info.append({
+                        'title': book['title'],
+                        'author': book['author'],
+                        'year': book['year'],
+                        'description': book['description'],
+                        'recommendation': book['description'],
+                        'cover_url': book['cover_url'],
+                        'reading_url': book['reading_url'],
+                        'buy_link': book['buy_link'],
+                        'has_ebook': book['has_ebook']
+                    })
+
+                # Prepare messages for AI response
+                ai_messages = [
+                    {"role": "system", "content": "You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses concise (1-2 sentences) and conversational."}
+                ]
+
+                # Add conversation history if available
+                if conversation_context:
+                    ai_messages.extend(conversation_context[-5:])
+
+                # Add current context and books
+                ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Books: {books}\n You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses to 1-2 sentences and conversational. Don't list the books out unless the user has a question about it."})
+
+                ai_response = openai.ChatCompletion.create(
+                    model="gpt-4o-mini",
+                    messages=ai_messages,
+                    max_tokens=150,
+                    temperature=0.7
+                ).choices[0].message['content']
+
+                return jsonify({
+                    'ai_response': ai_response,
+                    'books': books_info,
+                    'response_type': 'BOOKS'
+                })
+                
+                
+
+        elif response_type == 'RESEARCH':
+                if research_source == 'semantic_scholar':
+                    papers = search_semantic_scholar(user_input, max_results=max_results)
+                    
+                    if papers is None:
+                        papers = []
+                        print("Warning: search_semantic_scholar returned None")
+                    
+                    research_info = get_semantic_scholar_details(papers)
+                    
+                    if not research_info or len(research_info) == 0:
+                        # Prepare messages for AI response
+                        ai_messages = [
+                            {"role": "system", "content": "You are a friendly and knowledgeable research assistant. The user asked for recent academic papers but none were found. Apologize and suggest they try a different search term."}
+                        ]
+                        
+                        # Add conversation history if available
+                        if conversation_context:
+                            ai_messages.extend(conversation_context[-5:])
+                        
+                        # Add current context
+                        ai_messages.append({"role": "user", "content": f"User request: {user_input}\n No research papers were found for this query. Please suggest alternative search terms."})
+
+                        ai_response = openai.ChatCompletion.create(
+                            model="gpt-4o-mini",
+                            messages=ai_messages,
+                            max_tokens=150,
+                            temperature=0.7
+                        ).choices[0].message['content']
+                        
+                        return jsonify({
+                            'ai_response': ai_response,
+                            'books': [],
+                            'response_type': 'TEXT'
+                        })
+                    
                     # Prepare messages for AI response
                     ai_messages = [
-                        {"role": "system", "content": "You are a friendly and knowledgeable research assistant. The user asked for recent academic papers but none were found. Apologize and suggest they try a different search term."}
+                        {"role": "system", "content": "You are a friendly and knowledgeable research assistant. Respond naturally about recent academic research. Keep responses concise (1-2 sentences) and conversational."}
                     ]
                     
                     # Add conversation history if available
                     if conversation_context:
                         ai_messages.extend(conversation_context[-5:])
                     
-                    # Add current context
-                    ai_messages.append({"role": "user", "content": f"User request: {user_input}\n No research papers were found for this query. Please suggest alternative search terms."})
+                    # Add current context and research
+                    ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Research Info: {research_info}\n You are a friendly and knowledgeable research assistant. Respond naturally about the recent academic papers you found. Keep responses to 1-2 sentences and conversational. Don't list the papers unless the user specifically asked about them."})
 
                     ai_response = openai.ChatCompletion.create(
                         model="gpt-4o-mini",
@@ -667,94 +833,40 @@ def recommend():
                     
                     return jsonify({
                         'ai_response': ai_response,
-                        'books': [],
-                        'response_type': 'TEXT'
+                        'books': research_info,
+                        'response_type': 'RESEARCH_RECENT'
                     })
                 
-                # Prepare messages for AI response
-                ai_messages = [
-                    {"role": "system", "content": "You are a friendly and knowledgeable research assistant. Respond naturally about recent academic research. Keep responses concise (1-2 sentences) and conversational."}
-                ]
-                
-                # Add conversation history if available
-                if conversation_context:
-                    ai_messages.extend(conversation_context[-5:])
-                
-                # Add current context and research
-                ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Research Info: {research_info}\n You are a friendly and knowledgeable research assistant. Respond naturally about the recent academic papers you found. Keep responses to 1-2 sentences and conversational. Don't list the papers unless the user specifically asked about them."})
+                elif research_source == 'internet_archive':
+                    research_results = search_internet_archive(user_input, max_results=max_results)
+                    research_info = get_research_details(research_results)
+                    
+                    # Prepare messages for AI response
+                    ai_messages = [
+                        {"role": "system", "content": "You are a friendly and knowledgeable research assistant specializing in historical documents and older research. Respond naturally to the user's request. Keep responses concise (1-2 sentences) and conversational."}
+                    ]
+                    
+                    # Add conversation history if available
+                    if conversation_context:
+                        ai_messages.extend(conversation_context[-5:])
+                    
+                    # Add current context and research
+                    ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Research Info: {research_info}\n You are a friendly and knowledgeable research assistant. Respond naturally about the archived academic papers and historical documents you found. Keep responses to 1-2 sentences and conversational. Don't list the papers unless the user specifically asked about them."})
 
-                ai_response = openai.ChatCompletion.create(
-                    model="gpt-4o-mini",
-                    messages=ai_messages,
-                    max_tokens=150,
-                    temperature=0.7
-                ).choices[0].message['content']
-                
-                return jsonify({
-                    'ai_response': ai_response,
-                    'books': research_info,
-                    'response_type': 'RESEARCH_RECENT'
-                })
-            except Exception as e:
-                fallback_msg = f"Note: Recent research search failed, falling back to archive research. Error: {str(e)}"
-                print(fallback_msg)
-                
-                research_results = search_internet_archive(user_input, max_results=max_results)
-                research_info = get_research_details(research_results)
-                
-                # Prepare messages for AI response
-                ai_messages = [
-                    {"role": "system", "content": "You are a friendly research assistant. The user asked for recent papers but we had to use archive sources instead. Acknowledge this while being helpful."}
-                ]
-                
-                # Add conversation history if available
-                if conversation_context:
-                    ai_messages.extend(conversation_context[-5:])
-                
-                # Add current context
-                ai_messages.append({"role": "user", "content": f"User request: {user_input}\n We couldn't find recent papers, but found some archive documents instead. Mention this politely and briefly describe what you found."})
-
-                ai_response = openai.ChatCompletion.create(
-                    model="gpt-4o-mini",
-                    messages=ai_messages,
-                    max_tokens=150,
-                    temperature=0.7
-                ).choices[0].message['content']
-                
-                return jsonify({
-                    'ai_response': ai_response,
-                    'books': research_info,
-                    'response_type': 'RESEARCH_ARCHIVE'
-                })
+                    ai_response = openai.ChatCompletion.create(
+                        model="gpt-4o-mini",
+                        messages=ai_messages,
+                        max_tokens=150,
+                        temperature=0.7
+                    ).choices[0].message['content']
+                    
+                    return jsonify({
+                        'ai_response': ai_response,
+                        'books': research_info,
+                        'response_type': 'RESEARCH_ARCHIVE'
+                    })
             
-        elif response_type == 'RESEARCH_ARCHIVE':
-            research_results = search_internet_archive(user_input, max_results=max_results)
-            research_info = get_research_details(research_results)
-            
-            # Prepare messages for AI response
-            ai_messages = [
-                {"role": "system", "content": "You are a friendly and knowledgeable research assistant specializing in historical documents and older research. Respond naturally to the user's request. Keep responses concise (1-2 sentences) and conversational."}
-            ]
-            
-            # Add conversation history if available
-            if conversation_context:
-                ai_messages.extend(conversation_context[-5:])
-            
-            # Add current context and research
-            ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Research Info: {research_info}\n You are a friendly and knowledgeable research assistant. Respond naturally about the archived academic papers and historical documents you found. Keep responses to 1-2 sentences and conversational. Don't list the papers unless the user specifically asked about them."})
-
-            ai_response = openai.ChatCompletion.create(
-                model="gpt-4o-mini",
-                messages=ai_messages,
-                max_tokens=150,
-                temperature=0.7
-            ).choices[0].message['content']
-            
-            return jsonify({
-                'ai_response': ai_response,
-                'books': research_info,
-                'response_type': 'RESEARCH_ARCHIVE'
-            })
+        
         else:
             # Prepare messages for AI general response
             ai_messages = [
@@ -991,20 +1103,37 @@ def quick_search_results():
         # Get the appropriate max results based on user's plan
         max_results = min(max_results, get_quick_search_limit(session['user']['email']))
 
+        # Get user's preferred sources from settings
+        user_email = session['user']['email']
+        settings_ref = db.collection('Settings').where('email', '==', user_email).limit(1)
+        settings_docs = settings_ref.get()
+        
+        if len(settings_docs) == 0:
+            book_source = 'open_library'
+            research_source = 'semantic_scholar'
+        else:
+            settings = settings_docs[0].to_dict()
+            book_source = settings.get('book_source', 'open_library')
+            research_source = settings.get('research_source', 'semantic_scholar')
+
         if source == 'books':
-            book_results = search_open_library(query, max_results=max_results)
-            _, books_info = get_book_descriptions(query, book_results)
-            return jsonify(books_info)
+            if book_source == 'open_library':
+                book_results = search_open_library(query, max_results=max_results)
+                _, books_info = get_book_descriptions(query, book_results)
+                return jsonify(books_info)
+            elif book_source == 'google_books':
+                books_info = search_google_books(query, max_results=max_results)
+                return jsonify(books_info)
 
-        elif source == 'recent_research':
-            papers = search_semantic_scholar(query, max_results=max_results)
-            research_info = get_semantic_scholar_details(papers)
-            return jsonify(research_info)
-
-        elif source == 'archive':
-            research_results = search_internet_archive(query, max_results=max_results)
-            research_info = get_research_details(research_results)
-            return jsonify(research_info)
+        elif source == 'research':
+            if research_source == 'semantic_scholar':
+                papers = search_semantic_scholar(query, max_results=max_results)
+                research_info = get_semantic_scholar_details(papers)
+                return jsonify(research_info)
+            elif research_source == 'internet_archive':
+                research_results = search_internet_archive(query, max_results=max_results)
+                research_info = get_research_details(research_results)
+                return jsonify(research_info)
 
         return jsonify([])
 
@@ -1313,6 +1442,50 @@ def get_firebase_config():
     except Exception as e:
         print("Error in get_firebase_config:", str(e))  # Debug print
         return jsonify({'error': str(e)}), 500
+
+@app.route('/search', methods=['GET'])
+def search():
+    query = request.args.get('query', '')
+    if not query:
+        return render_template('index.html', error="Please enter a search term")
+    
+    # Format the query for the URL
+    formatted_query = query.replace(' ', '+')
+    
+    # Search URL for Open Library
+    search_url = f"https://openlibrary.org/search?q={formatted_query}&mode=everything"
+    
+    try:
+        # Get the search results page
+        response = requests.get(search_url)
+        response.raise_for_status()
+        
+        # Parse the HTML
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find the first book result
+        first_book = soup.select_one('.searchResultItem .booktitle a')
+        
+        if first_book:
+            # Get the link to the book details page
+            book_link = "https://openlibrary.org" + first_book['href']
+            
+            # Get the book details page
+            book_response = requests.get(book_link)
+            book_response.raise_for_status()
+            
+            # Return the book details page
+            return render_template('book_details.html', 
+                                  book_html=book_response.text,
+                                  book_title=first_book.text,
+                                  book_url=book_link)
+        else:
+            return render_template('search_results.html', 
+                                  results="No books found",
+                                  query=query)
+            
+    except requests.exceptions.RequestException as e:
+        return render_template('error.html', error=str(e))
 
 if __name__ == '__main__':
     app.run(debug=True)
