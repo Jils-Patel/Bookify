@@ -15,6 +15,7 @@ from usage_tracker import check_usage_limit, update_user_usage, check_book_track
 from bs4 import BeautifulSoup
 from urllib.parse import quote_plus
 import PyPDF2
+from flask import send_from_directory
 
 # Load environment variables from .env file in development
 if os.path.exists('.env'):
