@@ -14,8 +14,9 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
-    padding-bottom: 40px;
+    justify-content: center;
+    padding: 100px 0 40px 0; /* Adjusted padding to account for fixed header */
+    min-height: calc(100vh - 70px); /* Subtract footer height */
 }
 
 /* Header and Navbar */
@@ -86,15 +87,21 @@ body {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
+.signin-button img {
+    width: 18px;
+    height: 18px;
+}
+
 .login-container {
     max-width: 400px;
-    margin: 0 auto;
+    width: 90%;
     padding: 40px;
     background-color: white;
     border-radius: 10px;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     text-align: center;
-    margin-top: 200px;
+    margin: 0 auto;
+    margin-top: 20px;
 }
 
 .login-title {
@@ -164,6 +171,8 @@ body {
     text-align: center;
     width: 100%;
     margin-top: auto;
+    position: relative;
+    z-index: 1;
 }
 
 .footer-simple {
@@ -263,6 +272,18 @@ body {
     font-size: 14px;
     line-height: 1.5;
     text-align: center;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    display: none;
+}
+
+#login-error-message {
+    margin-bottom: 15px;
+}
+
+#modal-error-message {
+    margin-bottom: 20px;
 }
 
 /* Error Modal Specific Styles */
@@ -282,12 +303,17 @@ body {
 
 .error-header i {
     font-size: 24px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
 }
 
 .error-header h2 {
     margin: 0;
     font-size: 20px;
     font-weight: 600;
+    line-height: 24px;
+    padding-top: 8px;
 }
 
 .error-content {

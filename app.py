@@ -1331,7 +1331,7 @@ def payment_success():
         flash('There was an error processing your payment. Please contact support.', 'error')
         return redirect(url_for('settings'))
 
-@app.route('/Webhook', methods=['POST'])
+@app.route('/webhook', methods=['POST'])
 def stripe_webhook():
     payload = request.get_data()
     sig_header = request.headers.get('Stripe-Signature')

@@ -138,7 +138,7 @@
                     if (data.success) {
                         window.location.href = '/';
                     } else {
-                        showError('Authentication failed: ' + data.error);
+                        throw new Error(data.error || 'Sign in failed');
                     }
                 })
                 .catch((error) => {
@@ -151,10 +151,9 @@
         function signInWithEmail() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('error-message');
 
             if (!email || !password) {
-                showError('Please enter both email and password');
+                showError('Please provide a valid email and password.');
                 return;
             }
 
@@ -203,23 +202,22 @@
         function createAccount() {
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            const errorMessage = document.getElementById('error-message');
 
             if (!email || !password) {
-                showError('Please enter both email and password');
+                showError('Please input an email address and password before clicking "Create Account".');
                 return;
             }
 
             // Validate password strength
             if (password.length < 8) {
-                showError('Password must be at least 8 characters long');
+                showError('Your password is too weak. Please use at least 8 characters.');
                 return;
             }
 
             // Validate email format
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
-                showError('Please enter a valid email address');
+                showError('Please enter a valid email address.');
                 return;
             }
 
@@ -248,7 +246,7 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        showError('Account created successfully! You can now sign in.', 'success');
+                        showError('Account created successfully!', 'success');
                         // Clear the form
                         document.getElementById('email').value = '';
                         document.getElementById('password').value = '';
@@ -278,16 +276,20 @@
             
             // Format Firebase error messages to be more user-friendly
             let formattedMessage = message;
-            if (message.includes('auth/wrong-password')) {
+            if (message.includes('auth/invalid-email') || message.includes('auth/invalid-login-credentials')) {
+                formattedMessage = 'Please enter a valid email address and password.';
+            } else if (message.includes('auth/wrong-password')) {
                 formattedMessage = 'The password you entered is incorrect. Please try again.';
             } else if (message.includes('auth/user-not-found')) {
                 formattedMessage = 'No account exists with this email address. Please check your email or create a new account.';
             } else if (message.includes('auth/email-already-in-use')) {
                 formattedMessage = 'An account with this email already exists. Please sign in instead.';
-            } else if (message.includes('auth/invalid-email')) {
-                formattedMessage = 'Please enter a valid email address.';
             } else if (message.includes('auth/weak-password')) {
                 formattedMessage = 'Your password is too weak. Please use at least 8 characters.';
+            } else if (message.includes('auth/network-request-failed')) {
+                formattedMessage = 'Network error. Please check your internet connection.';
+            } else if (message.includes('auth/too-many-requests')) {
+                formattedMessage = 'Too many attempts. Please try again later.';
             }
             
             errorMessage.textContent = formattedMessage;
@@ -297,14 +299,23 @@
                 errorHeader.textContent = 'Success';
                 errorIcon.classList.remove('fa-exclamation-circle');
                 errorIcon.classList.add('fa-check-circle');
-                errorDescription.textContent = 'Great!';
+                // Set specific success messages based on the context
+                if (message.includes('Account created successfully')) {
+                    errorDescription.textContent = 'Your account has been created!';
+                } else if (message.includes('Password reset email sent')) {
+                    errorDescription.textContent = 'Check your email for the reset link!';
+                } else if (message.includes('Sign in successful')) {
+                    errorDescription.textContent = 'Welcome back!';
+                } else {
+                    errorDescription.textContent = message;
+                }
                 errorIcon.style.color = '#28a745';
                 errorMessage.style.color = '#155724';
             } else {
                 errorHeader.textContent = 'Error';
                 errorIcon.classList.remove('fa-check-circle');
                 errorIcon.classList.add('fa-exclamation-circle');
-                errorDescription.textContent = 'Please ensure your credentials are valid.';
+                errorDescription.textContent = formattedMessage;
                 errorIcon.style.color = '#dc3545';
                 errorMessage.style.color = '#721c24';
             }
@@ -351,17 +362,16 @@
         // Function to send reset email
         function sendResetEmail() {
             const email = document.getElementById('resetEmail').value;
-            const errorMessage = document.getElementById('modal-error-message');
 
             if (!email) {
-                showModalError('Please enter your email address');
+                showError('Please enter your email address to reset your password.');
                 return;
             }
 
             // Validate email format
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email)) {
-                showModalError('Please enter a valid email address');
+                showError('Please enter a valid email address.');
                 return;
             }
 
@@ -378,7 +388,7 @@
             })
             .then(() => {
                 console.log('Password reset email sent successfully');
-                showModalError('Password reset email sent! Please check your inbox and spam folder.', 'success');
+                showError('Password reset email sent! Please check your inbox and spam folder.', 'success');
                 // Close modal after 3 seconds
                 setTimeout(() => {
                     closeModal();
@@ -388,19 +398,22 @@
                 console.error('Password reset error:', error);
                 switch (error.code) {
                     case 'auth/user-not-found':
-                        showModalError('No account found with this email address');
+                        showError('No account found with this email address.');
+                        break;
+                    case 'auth/invalid-login-credentials':
+                        showError('Invalid login credentials. Please check your email password.');
                         break;
                     case 'auth/invalid-email':
-                        showModalError('Please enter a valid email address');
+                        showError('Please enter a valid email address.');
                         break;
                     case 'auth/too-many-requests':
-                        showModalError('Too many attempts. Please try again later.');
+                        showError('Too many attempts. Please try again later.');
                         break;
                     case 'auth/network-request-failed':
-                        showModalError('Network error. Please check your internet connection.');
+                        showError('Network error. Please check your internet connection.');
                         break;
                     default:
-                        showModalError('Error sending password reset email. Please try again later.');
+                        showError('Error sending password reset email. Please try again later.');
                         console.error('Detailed error:', error);
                 }
             })
