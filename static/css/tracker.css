@@ -1100,3 +1100,69 @@ textarea.form-input {
   list-style-type: square !important;
   margin-left: 1em;
 }
+
+/* Expandable content styles */
+.expandable-content {
+    max-height: 0px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    margin-top: 10px;
+}
+
+.expand-btn {
+    cursor: pointer;
+    transition: transform 0.3s ease;
+    margin-left: 8px;
+    color: #2d3748;
+}
+
+.expand-btn.expanded {
+    transform: rotate(180deg);
+}
+
+.book-detail-description,
+.book-detail-notes {
+    margin-top: 10px;
+}
+
+.ai-notes-btn {
+    cursor: pointer;
+    margin-left: 8px;
+    margin-bottom: 5px;
+    color: #4299e1;
+    transition: color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    position: relative;
+    vertical-align: middle;
+}
+
+.ai-notes-btn:hover {
+    color: #3182ce;
+}
+
+.ai-notes-btn.loading {
+    color: #a0aec0;
+}
+
+.ai-notes-btn.loading::after {
+    content: 'Please Wait! Generating Notes...';
+    position: absolute;
+    font-size: 15px;
+    color: #4299e1;
+    left: -50px;
+    top: 80%;
+    white-space: nowrap;
+    animation: slideDots 1s infinite;
+    font-family: sans-serif;
+}
+
+@keyframes slideDots {
+    0% { content: 'Please Wait! Generating Notes.'; }
+    33% { content: 'Please Wait! Generating Notes..'; }
+    66% { content: 'Please Wait! Generating Notes...'; }
+    100% { content: 'Please Wait! Generating Notes.'; }
+}

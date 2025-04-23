@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const readOnlineHtml = item.reading_url
                 ? `<div class="read-online-section">
                     <a href="${item.reading_url}" target="_blank" class="read-online-btn">
-                        <i class="fas fa-book-reader"></i> Read Online
+                        <i class="fas fa-book-reader"></i> View Online
                     </a>
                    </div>`
                 : '';

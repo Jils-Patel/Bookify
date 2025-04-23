@@ -14,6 +14,7 @@ import stripe
 from usage_tracker import check_usage_limit, update_user_usage, check_book_tracking_limit, get_quick_search_limit
 from bs4 import BeautifulSoup
 from urllib.parse import quote_plus
+import PyPDF2
 
 # Load environment variables from .env file in development
 if os.path.exists('.env'):
@@ -1486,6 +1487,209 @@ def search():
             
     except requests.exceptions.RequestException as e:
         return render_template('error.html', error=str(e))
+
+@app.route('/extract-pdf-text', methods=['POST'])
+@login_required
+def extract_pdf_text():
+    try:
+        data = request.json
+        pdf_url = data.get('pdf_url')
+        
+        if not pdf_url:
+            return jsonify({'error': 'No PDF URL provided'}), 400
+        
+        # Download the PDF
+        response = requests.get(pdf_url, timeout=30)  # Added timeout
+        if response.status_code != 200:
+            return jsonify({'error': 'Failed to download PDF'}), 500
+            
+        # Save the PDF temporarily
+        temp_pdf_path = 'temp.pdf'
+        try:
+            with open(temp_pdf_path, 'wb') as f:
+                f.write(response.content)
+            
+            # Extract text using PyPDF2
+            text = ''
+            with open(temp_pdf_path, 'rb') as f:
+                pdf_reader = PyPDF2.PdfReader(f)
+                if len(pdf_reader.pages) == 0:
+                    return jsonify({'error': 'PDF has no pages'}), 400
+                    
+                for page in pdf_reader.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        text += page_text + '\n'
+                        
+            if not text.strip():
+                return jsonify({'error': 'No text could be extracted from the PDF'}), 400
+                
+            return jsonify({'text': text})
+            
+        except PyPDF2.PdfReadError as e:
+            return jsonify({'error': f'Invalid PDF file: {str(e)}'}), 400
+        except Exception as e:
+            return jsonify({'error': f'Failed to process PDF: {str(e)}'}), 500
+        finally:
+            # Clean up the temporary file
+            if os.path.exists(temp_pdf_path):
+                os.remove(temp_pdf_path)
+                    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/generate-notes', methods=['POST'])
+@login_required
+def generate_notes():
+    try:
+        # Check if OpenAI API key is set
+        if not openai.api_key:
+            return jsonify({'error': 'OpenAI API key is not configured'}), 500
+            
+        data = request.json
+        
+        text = data.get('text')
+        title = data.get('title')
+        author = data.get('author')
+        
+        if not all([text, title, author]):
+            return jsonify({'error': 'Missing required fields'}), 400
+            
+        # Check if user has reached their AI query limit
+        if not check_usage_limit(session['user']['email'], 'ai_query'):
+            return jsonify({
+                'error': "You've reached your limit of 15 AI queries. Upgrade to Pro for unlimited access!"
+            }), 403
+            
+        # Update usage after checking limit
+        update_user_usage(session['user']['email'], 'ai_query')
+        
+        # Generate notes using GPT
+        prompt = f"""
+        Please generate comprehensive notes for the book "{title}" by {author}.
+        The following is the extracted text from the book:
+        
+        {text[:4000]}  # Limit text length to avoid token limits
+        
+        Please provide a detailed analysis with the following sections:
+        
+        1. Key Concepts and Main Ideas
+        - Summarize the main themes and central arguments
+        - Explain key concepts and their significance
+        - Highlight the author's main thesis or purpose
+        
+        2. Important Quotes and Passages
+        - Select 3-5 significant quotes that capture key ideas
+        - Provide context for each quote
+        - Explain why each quote is important
+        
+        3. Analysis and Insights
+        - Discuss the author's methodology and approach
+        - Analyze the strengths and weaknesses of the arguments
+        - Connect the ideas to broader themes or current issues
+        - Provide your critical evaluation of the work
+        
+        4. Questions for Further Thought
+        - List 3-5 thought-provoking questions raised by the text
+        - Suggest areas for further research or discussion
+        - Consider implications for future work
+        
+        Format the response using HTML tags for better readability:
+        - Use <h3> for section headers
+        - Use <p> for paragraphs
+        - Use <blockquote> for quotes
+        - Use <ul> and <li> for lists
+        - Use <strong> for emphasis
+        
+        Make the response detailed and comprehensive, with at least 3-4 paragraphs per section.
+        """
+        
+        try:
+            response = openai.ChatCompletion.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a scholarly assistant that generates detailed, well-structured book notes. Your responses should be comprehensive, analytical, and properly formatted using HTML."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=2000,
+                temperature=0.7
+            )
+        except Exception as e:
+            raise
+        
+        notes = response.choices[0].message['content']
+        return jsonify({'notes': notes})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auth/create-account', methods=['POST'])
+def create_account():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+
+        if not email or not password:
+            return jsonify({'error': 'Email and password are required'}), 400
+
+        try:
+            # Create the user account in Firebase
+            user = auth.create_user(
+                email=email,
+                password=password,
+                email_verified=False
+            )
+            
+            # Initialize user settings in Firestore
+            db.collection('Settings').document(user.uid).set({
+                'email': email,
+                'subscription_plan': 'free',
+                'reading_preferences': '',
+                'created_at': firestore.SERVER_TIMESTAMP
+            })
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Account created successfully',
+                'uid': user.uid
+            })
+
+        except Exception as e:
+            print(f"Error creating user: {str(e)}")
+            return jsonify({'error': str(e)}), 400
+
+    except Exception as e:
+        print(f"Server error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auth/email-signin', methods=['POST'])
+def email_signin():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
+
+        if not email or not password:
+            return jsonify({'error': 'Email and password are required'}), 400
+
+        try:
+            # Get user by email
+            user = auth.get_user_by_email(email)
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Signed in successfully',
+                'uid': user.uid
+            })
+
+        except Exception as e:
+            print(f"Error signing in: {str(e)}")
+            return jsonify({'error': 'Invalid email or password'}), 401
+
+    except Exception as e:
+        print(f"Server error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

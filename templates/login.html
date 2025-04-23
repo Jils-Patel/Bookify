@@ -35,10 +35,62 @@
         <div class="login-container">
             <h1 class="login-title">Welcome to Bookify</h1>
             
+            <!-- Email/Password Login Form -->
+            <div class="login-form">
+                <div id="error-message" class="error-message" style="display: none;"></div>
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="Email" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" placeholder="Password" required>
+                </div>
+                <div class="form-group">
+                    <a href="#" onclick="openForgotPasswordModal()" class="forgot-password">Forgot Password?</a>
+                </div>
+                <div class="form-group">
+                    <button id="emailSignIn" class="primary-button">Sign In</button>
+                </div>
+                <div class="form-group">
+                    <button id="createAccount" class="secondary-button">Create Account</button>
+                </div>
+            </div>
+            
+            <!-- Forgot Password Modal -->
+            <div id="forgotPasswordModal" class="modal">
+                <div class="modal-content">
+                    <span class="close-modal">&times;</span>
+                    <h2>Reset Password</h2>
+                    <p>Enter your email address and we'll send you a link to reset your password.</p>
+                    <div class="modal-form">
+                        <div class="form-group">
+                            <input type="email" id="resetEmail" placeholder="Email" required>
+                        </div>
+                        <div id="modal-error-message" class="error-message" style="display: none;"></div>
+                        <button onclick="sendResetEmail()" class="primary-button">Send Reset Link</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Error Modal -->
+            <div id="errorModal" class="modal">
+                <div class="modal-content error-modal-content">
+                    <span class="close-modal" onclick="closeErrorModal()">&times;</span>
+                    <div class="error-header">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <h2>Error</h2>
+                    </div>
+                    <div class="error-content">
+                        <p class="error-description">Please ensure your credentials are valid.</p>
+                        <div id="error-message" class="error-message"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="divider">
+                <span>or</span>
+            </div>
+            
             <div class="login-buttons">
-                <!-- Firebase will be initialized in this page -->
-                <div id="firebaseAuthContainer"></div>
-                
                 <!-- Alternative direct Google sign-in button -->
                 <a href="#" class="google-signin-button" onclick="signInWithGoogle()">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo">
@@ -86,14 +138,299 @@
                     if (data.success) {
                         window.location.href = '/';
                     } else {
-                        alert('Authentication failed: ' + data.error);
+                        showError('Authentication failed: ' + data.error);
                     }
                 })
                 .catch((error) => {
                     // Handle errors
-                    alert('Error during authentication: ' + error.message);
+                    showError('Error during authentication: ' + error.message);
                 });
         }
+
+        // Function to handle email/password sign in
+        function signInWithEmail() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
+
+            if (!email || !password) {
+                showError('Please enter both email and password');
+                return;
+            }
+
+            // Show loading state
+            const signInButton = document.getElementById('emailSignIn');
+            const originalText = signInButton.textContent;
+            signInButton.textContent = 'Signing in...';
+            signInButton.disabled = true;
+
+            // Sign in with Firebase
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Get the user's ID token
+                    return userCredential.user.getIdToken();
+                })
+                .then((idToken) => {
+                    // Send the token to our backend
+                    return fetch('/process_firebase_token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ id_token: idToken })
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        window.location.href = '/';
+                    } else {
+                        throw new Error(data.error || 'Sign in failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Sign in error:', error);
+                    showError(error.message);
+                })
+                .finally(() => {
+                    // Reset button state
+                    signInButton.textContent = originalText;
+                    signInButton.disabled = false;
+                });
+        }
+
+        // Function to create a new account
+        function createAccount() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('error-message');
+
+            if (!email || !password) {
+                showError('Please enter both email and password');
+                return;
+            }
+
+            // Validate password strength
+            if (password.length < 8) {
+                showError('Password must be at least 8 characters long');
+                return;
+            }
+
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showError('Please enter a valid email address');
+                return;
+            }
+
+            // Show loading state
+            const createButton = document.getElementById('createAccount');
+            const originalText = createButton.textContent;
+            createButton.textContent = 'Creating Account...';
+            createButton.disabled = true;
+
+            // Create account with Firebase
+            firebase.auth().createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Get the user's ID token
+                    return userCredential.user.getIdToken();
+                })
+                .then((idToken) => {
+                    // Send the token to our backend
+                    return fetch('/process_firebase_token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ id_token: idToken })
+                    });
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showError('Account created successfully! You can now sign in.', 'success');
+                        // Clear the form
+                        document.getElementById('email').value = '';
+                        document.getElementById('password').value = '';
+                    } else {
+                        throw new Error(data.error || 'Account creation failed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Account creation error:', error);
+                    showError(error.message);
+                })
+                .finally(() => {
+                    // Reset button state
+                    createButton.textContent = originalText;
+                    createButton.disabled = false;
+                });
+        }
+
+        // Function to show error messages
+        function showError(message, type = 'error') {
+            const errorModal = document.getElementById('errorModal');
+            const errorMessage = document.getElementById('error-message');
+            const modalContent = errorModal.querySelector('.modal-content');
+            const errorHeader = errorModal.querySelector('.error-header h2');
+            const errorIcon = errorModal.querySelector('.error-header i');
+            const errorDescription = errorModal.querySelector('.error-description');
+            
+            // Format Firebase error messages to be more user-friendly
+            let formattedMessage = message;
+            if (message.includes('auth/wrong-password')) {
+                formattedMessage = 'The password you entered is incorrect. Please try again.';
+            } else if (message.includes('auth/user-not-found')) {
+                formattedMessage = 'No account exists with this email address. Please check your email or create a new account.';
+            } else if (message.includes('auth/email-already-in-use')) {
+                formattedMessage = 'An account with this email already exists. Please sign in instead.';
+            } else if (message.includes('auth/invalid-email')) {
+                formattedMessage = 'Please enter a valid email address.';
+            } else if (message.includes('auth/weak-password')) {
+                formattedMessage = 'Your password is too weak. Please use at least 8 characters.';
+            }
+            
+            errorMessage.textContent = formattedMessage;
+            errorMessage.className = 'error-message';
+            
+            if (type === 'success') {
+                errorHeader.textContent = 'Success';
+                errorIcon.classList.remove('fa-exclamation-circle');
+                errorIcon.classList.add('fa-check-circle');
+                errorDescription.textContent = 'Great!';
+                errorIcon.style.color = '#28a745';
+                errorMessage.style.color = '#155724';
+            } else {
+                errorHeader.textContent = 'Error';
+                errorIcon.classList.remove('fa-check-circle');
+                errorIcon.classList.add('fa-exclamation-circle');
+                errorDescription.textContent = 'Please ensure your credentials are valid.';
+                errorIcon.style.color = '#dc3545';
+                errorMessage.style.color = '#721c24';
+            }
+            
+            errorModal.style.display = 'block';
+            
+            // Auto-close after 3 seconds for success messages
+            if (type === 'success') {
+                setTimeout(() => {
+                    closeErrorModal();
+                }, 3000);
+            }
+        }
+
+        // Function to close error modal
+        function closeErrorModal() {
+            const errorModal = document.getElementById('errorModal');
+            errorModal.style.display = 'none';
+        }
+
+        // Function to open forgot password modal
+        function openForgotPasswordModal() {
+            const modal = document.getElementById('forgotPasswordModal');
+            const resetEmail = document.getElementById('resetEmail');
+            resetEmail.value = document.getElementById('email').value;
+            modal.style.display = 'block';
+        }
+
+        // Function to show modal error messages
+        function showModalError(message, type = 'error') {
+            const errorMessage = document.getElementById('modal-error-message');
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+            errorMessage.className = 'error-message';
+            if (type === 'success') {
+                errorMessage.style.backgroundColor = '#d4edda';
+                errorMessage.style.color = '#155724';
+            } else {
+                errorMessage.style.backgroundColor = '#f8d7da';
+                errorMessage.style.color = '#721c24';
+            }
+        }
+
+        // Function to send reset email
+        function sendResetEmail() {
+            const email = document.getElementById('resetEmail').value;
+            const errorMessage = document.getElementById('modal-error-message');
+
+            if (!email) {
+                showModalError('Please enter your email address');
+                return;
+            }
+
+            // Validate email format
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showModalError('Please enter a valid email address');
+                return;
+            }
+
+            // Show loading state
+            const sendButton = document.querySelector('.modal-content .primary-button');
+            const originalText = sendButton.textContent;
+            sendButton.textContent = 'Sending...';
+            sendButton.disabled = true;
+
+            // Send password reset email
+            firebase.auth().sendPasswordResetEmail(email, {
+                url: window.location.origin + '/Login',
+                handleCodeInApp: true
+            })
+            .then(() => {
+                console.log('Password reset email sent successfully');
+                showModalError('Password reset email sent! Please check your inbox and spam folder.', 'success');
+                // Close modal after 3 seconds
+                setTimeout(() => {
+                    closeModal();
+                }, 3000);
+            })
+            .catch(error => {
+                console.error('Password reset error:', error);
+                switch (error.code) {
+                    case 'auth/user-not-found':
+                        showModalError('No account found with this email address');
+                        break;
+                    case 'auth/invalid-email':
+                        showModalError('Please enter a valid email address');
+                        break;
+                    case 'auth/too-many-requests':
+                        showModalError('Too many attempts. Please try again later.');
+                        break;
+                    case 'auth/network-request-failed':
+                        showModalError('Network error. Please check your internet connection.');
+                        break;
+                    default:
+                        showModalError('Error sending password reset email. Please try again later.');
+                        console.error('Detailed error:', error);
+                }
+            })
+            .finally(() => {
+                // Reset button state
+                sendButton.textContent = originalText;
+                sendButton.disabled = false;
+            });
+        }
+
+        // Add event listeners when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('emailSignIn').addEventListener('click', signInWithEmail);
+            document.getElementById('createAccount').addEventListener('click', createAccount);
+            
+            // Close modals when clicking the X
+            document.querySelectorAll('.close-modal').forEach(button => {
+                button.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    modal.style.display = 'none';
+                });
+            });
+            
+            // Close modals when clicking outside
+            window.addEventListener('click', function(event) {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            });
+        });
     </script>
 </body>
 </html> 

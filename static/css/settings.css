@@ -201,6 +201,7 @@
     background-color: #4a90e2;
     color: white;
     border: none;
+    margin-top: 10px;
 }
 
 .save-button:hover {
@@ -213,6 +214,7 @@
     color: #666;
     border: 1px solid #ccc;
     transition: all 0.2s;
+    margin-top: 20px;
 }
 
 .cancel-button:hover {
@@ -346,27 +348,40 @@
     .plan-options {
         flex-direction: column;
     }
-    
+
     .plan-option {
         width: 100%;
     }
-    
+
+    /* If the buttons were originally inside .action-buttons */
+    /* Even though you commented it out, let's include this in case you revert */
     .action-buttons {
         flex-direction: column;
         align-items: stretch;
         padding: 0;
-        gap: 10px;
+        gap: 10px; /* This will create vertical space if they are direct children */
     }
-    
+
+    .cancel-button {
+        margin-top: 40px; /* Existing top margin */
+        margin-bottom: 5px; /* Add margin below Cancel button */
+    }
+
+    .save-button {
+        margin-top: 5px; /* Add margin above Save button */
+    }
+
     .save-button, .cancel-button {
-        margin: 0;
+        margin-left: 0; /* Ensure no left margin is interfering */
+        margin-right: 0; /* Ensure no right margin is interfering */
         box-sizing: border-box;
+        width: 100%; /* Ensure they still take full width */
     }
-    
+
     .usage-stats {
         flex-direction: column;
     }
-    
+
     .usage-stat {
         width: 100%;
     }

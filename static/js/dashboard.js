@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (book.reading_url) {
             actionButtons.push(`
                 <a href="${book.reading_url}" target="_blank" class="read-online-btn">
-                    <i class="fas fa-book-reader"></i> Read Online
+                    <i class="fas fa-book-reader"></i> View Online
                 </a>
             `);
         }

@@ -924,7 +924,7 @@ function showModal(content) {
         const readOnlineHtml = content.has_ebook && content.reading_url
             ? `<div class="read-online-section">
                 <a href="${content.reading_url}" target="_blank" class="read-online-btn">
-                    <i class="fas fa-book-reader"></i> Read Online
+                    <i class="fas fa-book-reader"></i> View Online
                 </a>
                </div>`
             : '';
