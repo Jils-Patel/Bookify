@@ -1,3 +1,4 @@
+from flask import send_from_directory
 from flask import Flask, request, jsonify, render_template, redirect, session, url_for, flash
 import openai
 import requests
@@ -15,7 +16,6 @@ from usage_tracker import check_usage_limit, update_user_usage, check_book_track
 from bs4 import BeautifulSoup
 from urllib.parse import quote_plus
 import PyPDF2
-from flask import send_from_directory
 
 # Load environment variables from .env file in development
 if os.path.exists('.env'):
@@ -1599,7 +1599,6 @@ def generate_notes():
         - Use <h3> for section headers
         - Use <p> for paragraphs
         - Use <blockquote> for quotes
-        - Use <ul> and <li> for lists
         - Use <strong> for emphasis
         
         Make the response detailed and comprehensive, with at least 3-4 paragraphs per section.
