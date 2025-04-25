@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     
     // Function to create typing animation effect
-    function typeMessage(message, element, speed = -20) {
+    function typeMessage(message, element, speed = -10) {
         let i = 0;
         element.textContent = ''; // Clear the element
         

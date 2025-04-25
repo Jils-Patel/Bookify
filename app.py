@@ -16,7 +16,7 @@ from usage_tracker import check_usage_limit, update_user_usage, check_book_track
 from bs4 import BeautifulSoup
 from urllib.parse import quote_plus
 import PyPDF2
-
+from groq import Groq
 # Load environment variables from .env file in development
 if os.path.exists('.env'):
     load_dotenv()
@@ -28,6 +28,9 @@ app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'your-secret-key-here')
 app.config['STRIPE_PUBLISHABLE_KEY'] = os.environ.get('STRIPE_PUBLISHABLE_KEY')
 
 openai.api_key = os.environ.get('OPENAI_API_KEY', '')  # Get from environment variable
+groq_api_key = os.environ.get('GROQ_API_KEY')
+
+client = Groq(api_key=groq_api_key)
 
 # Initialize Firebase Admin SDK
 if not firebase_admin._apps:
@@ -914,7 +917,7 @@ def search_books_tracker():
     if not query:
         return jsonify({'error': 'No query provided'}), 400
     
-    search_terms = extract_search_terms_basic(query)
+    search_terms = query
     
     base_url = "http://openlibrary.org/search.json"
     response = requests.get(f"{base_url}?q={search_terms}&limit=10")
@@ -1605,8 +1608,8 @@ def generate_notes():
         """
         
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-4o-mini",
+            response = client.chat.completions.create(
+                model="llama3-8b-8192",
                 messages=[
                     {"role": "system", "content": "You are a scholarly assistant that generates detailed, well-structured book notes. Your responses should be comprehensive, analytical, and properly formatted using HTML."},
                     {"role": "user", "content": prompt}
@@ -1617,7 +1620,7 @@ def generate_notes():
         except Exception as e:
             raise
         
-        notes = response.choices[0].message['content']
+        notes = response.choices[0].message.content
         return jsonify({'notes': notes})
         
     except Exception as e:
