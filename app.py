@@ -12,11 +12,13 @@ from firebase_admin import firestore
 import firebase_admin.firestore as firestore_utils
 from dotenv import load_dotenv
 import stripe
-from usage_tracker import check_usage_limit, update_user_usage, check_book_tracking_limit, get_quick_search_limit
+from usage_tracker import check_usage_limit, update_user_usage, check_book_tracking_limit, get_quick_search_limit, reset_all_usage_counters
 from bs4 import BeautifulSoup
 from urllib.parse import quote_plus
 import PyPDF2
 from groq import Groq
+from datetime import datetime, timedelta
+import pytz
 # Load environment variables from .env file in development
 if os.path.exists('.env'):
     load_dotenv()
@@ -654,7 +656,7 @@ def recommend():
     # Check if user has reached their AI query limit
     if not check_usage_limit(session['user']['email'], 'ai_query'):
         return jsonify({
-            'ai_response': "You've reached your limit of 15 AI queries. Upgrade to Pro for unlimited access!",
+            'ai_response': "You've reached your limit of 50 Daily AI Queries. Upgrade to Pro for unlimited access!",
             'books': [],
             'response_type': 'ERROR'
         }), 403
@@ -1098,7 +1100,7 @@ def quick_search_results():
     # Check if user has reached their quick search limit
     if not check_usage_limit(session['user']['email'], 'quick_search'):
         return jsonify({
-            'error': "You've reached your limit of 15 quick searches. Upgrade to Pro for unlimited access!"
+            'error': "You've reached your limit of 50 Daily Quick Searches. Upgrade to Pro for unlimited access!"
         }), 403
 
     try:
@@ -1155,7 +1157,7 @@ def add_to_collection():
     # Check if user has reached their book tracking limit
     if not check_book_tracking_limit(session['user']['email']):
         return jsonify({
-            'error': "You've reached your limit of 5 tracked books. Upgrade to Pro to track unlimited books!"
+            'error': "You've reached your limit of 25 tracked books. Upgrade to Pro to track unlimited books!"
         }), 403
     
     try:
@@ -1562,7 +1564,7 @@ def generate_notes():
         # Check if user has reached their AI query limit
         if not check_usage_limit(session['user']['email'], 'ai_query'):
             return jsonify({
-                'error': "You've reached your limit of 15 AI queries. Upgrade to Pro for unlimited access!"
+                'error': "You've reached your limit of 50 Daily AI Queries. Upgrade to Pro for unlimited access!"
             }), 403
             
         # Update usage after checking limit

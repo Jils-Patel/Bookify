@@ -1,14 +1,61 @@
 from firebase_admin import firestore
 from datetime import datetime, timedelta
 import pytz
+import threading
+import time
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Usage limits for free plan
 FREE_PLAN_LIMITS = {
-    'ai_queries': 15,  # per day
-    'quick_searches': 15,  # per day
-    'max_quick_search_results': 5,
-    'max_tracked_books': 5
+    'ai_queries': 50,  # per day
+    'quick_searches': 50,  # per day
+    'max_quick_search_results': 25,
+    'max_tracked_books': 25
 }
+
+def reset_all_usage_counters():
+    db = firestore.client()
+    usage_ref = db.collection('Usage')
+    
+    # Get all usage documents
+    usage_docs = usage_ref.get()
+    
+    for doc in usage_docs:
+        usage_data = doc.to_dict()
+        # Reset counters unconditionally
+        doc.reference.update({
+            'ai_queries_today': 0,
+            'quick_searches_today': 0,
+            'last_update': firestore.SERVER_TIMESTAMP
+        })
+
+def start_reset_scheduler():
+    def scheduler():
+        while True:
+            try:
+                # Calculate time until next midnight
+                now = datetime.now(pytz.UTC)
+                tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
+                seconds_until_midnight = (tomorrow - now).total_seconds()
+                print(f"Sleeping for {seconds_until_midnight:.1f} seconds until midnight reset")
+                
+                # Sleep until midnight
+                time.sleep(seconds_until_midnight)
+                
+                # Reset all counters at midnight
+                reset_all_usage_counters()
+            except Exception as e:
+                time.sleep(1)  # Sleep for a second before retrying
+    
+    # Start the scheduler in a background thread
+    thread = threading.Thread(target=scheduler, daemon=True)
+    thread.start()
+
+start_reset_scheduler()
 
 def get_user_plan(email):
     """Get user's subscription plan from Settings collection"""
