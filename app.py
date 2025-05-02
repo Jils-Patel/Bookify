@@ -19,6 +19,8 @@ import PyPDF2
 from groq import Groq
 from datetime import datetime, timedelta
 import pytz
+import feedparser
+from urllib.parse import quote
 # Load environment variables from .env file in development
 if os.path.exists('.env'):
     load_dotenv()
@@ -538,6 +540,104 @@ def search_google_books(query, max_results=10):
         print(f"Error searching Google Books: {str(e)}")
         return []
 
+def search_arxiv_papers(query, max_results=10):
+    # Extract search terms using GPT
+    search_terms = extract_search_terms_with_gpt(query)
+    if not search_terms:
+        search_terms = query
+
+    try:
+        # Build the query URL
+        base_url = "http://export.arxiv.org/api/query?"
+        search_query = quote(f"all:{search_terms}")
+        query_url = f"{base_url}search_query={search_query}&start=0&max_results={max_results}"
+
+        # Parse the results from arXiv
+        feed = feedparser.parse(query_url)
+        papers = []
+
+        for entry in feed.entries:
+            try:
+                title = entry.get('title', 'No Title').strip()
+                authors_list = [author.name for author in entry.get('authors', [])]
+                author = authors_list[0] if authors_list else "Unknown Author"
+                published = entry.get('published', '').split('T')[0]  # YYYY-MM-DD
+                summary = entry.get('summary', 'No abstract available.').strip()
+                arxiv_id = entry.get('id', '').split('/')[-1]
+                abstract_url = entry.get('link', '')
+                pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
+
+                paper = {
+                    'title': title,
+                    'author': author,
+                    'authors': authors_list,
+                    'published': published,
+                    'summary': summary,
+                    'abstract_url': abstract_url,
+                    'pdf_url': pdf_url,
+                    'has_pdf': True,
+                    'arxiv_id': arxiv_id
+                }
+
+                papers.append(paper)
+            except Exception as inner_e:
+                print(f"Skipping entry due to error: {inner_e}")
+                continue
+
+        return get_arxiv_details(papers)
+    except Exception as e:
+        print(f"Error searching arXiv: {str(e)}")
+        return []
+
+def get_arxiv_details(papers):
+    """Format arXiv papers to match the expected format for display"""
+    paper_info = []
+    
+    if not papers:
+        return paper_info
+    
+    for paper in papers:
+        if not isinstance(paper, dict):
+            continue
+            
+        title = paper.get("title", "No title available")
+        author = paper.get("author", "Unknown author")
+        
+        # Format all authors as a string
+        authors_list = paper.get("authors", [])
+        all_authors = ", ".join(authors_list) if authors_list else "Unknown authors"
+        
+        year = paper.get("published", "").split("-")[0] if paper.get("published") else "Unknown"
+        abstract = paper.get("summary", "No abstract available")
+        paper_url = paper.get("abstract_url", None)
+        pdf_url = paper.get("pdf_url", None)
+        
+        # Set a placeholder image for arXiv papers
+        thumbnail_url = "/static/images/scholar-placeholder.svg"
+        
+        paper_info.append({
+            'title': title,
+            'author': author,
+            'all_authors': all_authors,
+            'year': year,
+            'abstract': abstract[:300] + '...' if abstract and len(abstract) > 300 else abstract,
+            'description': abstract,
+            'recommendation': abstract,
+            'cover_url': thumbnail_url,
+            'view_url': paper_url,
+            'download_url': pdf_url,
+            'has_ebook': pdf_url is not None,
+            'reading_url': paper_url,
+            'venue': 'arXiv',
+            'citation_count': 0,  # arXiv doesn't provide citation counts
+            'influential_citation_count': 0,
+            'is_open_access': True,  # All arXiv papers are open access
+            'type': 'arxiv',
+            'arxiv_id': paper.get('arxiv_id', '')
+        })
+    
+    return paper_info
+
 @app.route('/Login')
 def login():
     return render_template('login.html')
@@ -872,8 +972,61 @@ def recommend():
                         'books': research_info,
                         'response_type': 'RESEARCH_ARCHIVE'
                     })
-            
-        
+                
+                elif research_source == 'arxiv':
+                    papers = search_arxiv_papers(user_input, max_results=max_results)
+                    
+                    if not papers or len(papers) == 0:
+                        # Prepare messages for AI response
+                        ai_messages = [
+                            {"role": "system", "content": "You are a friendly and knowledgeable research assistant. The user asked for research papers but none were found. Apologize and suggest they try a different search term."}
+                        ]
+                        
+                        # Add conversation history if available
+                        if conversation_context:
+                            ai_messages.extend(conversation_context[-5:])
+                        
+                        # Add current context
+                        ai_messages.append({"role": "user", "content": f"User request: {user_input}\n No research papers were found for this query. Please suggest alternative search terms."})
+
+                        ai_response = openai.ChatCompletion.create(
+                            model="gpt-4o-mini",
+                            messages=ai_messages,
+                            max_tokens=150,
+                            temperature=0.7
+                        ).choices[0].message['content']
+                        
+                        return jsonify({
+                            'ai_response': ai_response,
+                            'books': [],
+                            'response_type': 'TEXT'
+                        })
+
+                    # Prepare messages for AI response
+                    ai_messages = [
+                        {"role": "system", "content": "You are a friendly and knowledgeable research assistant specializing in arXiv papers. Respond naturally to the user's request. Keep responses concise (1-2 sentences) and conversational."}
+                    ]
+                    
+                    # Add conversation history if available
+                    if conversation_context:
+                        ai_messages.extend(conversation_context[-5:])
+                    
+                    # Add current context and research
+                    ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Research Info: {papers}\n You are a friendly and knowledgeable research assistant. Respond naturally about the arXiv papers you found. Keep responses to 1-2 sentences and conversational. Don't list the papers unless the user specifically asked about them."})
+
+                    ai_response = openai.ChatCompletion.create(
+                        model="gpt-4o-mini",
+                        messages=ai_messages,
+                        max_tokens=150,
+                        temperature=0.7
+                    ).choices[0].message['content']
+                    
+                    return jsonify({
+                        'ai_response': ai_response,
+                        'books': papers,
+                        'response_type': 'RESEARCH_ARCHIVE'
+                    })
+
         else:
             # Prepare messages for AI general response
             ai_messages = [
@@ -1140,6 +1293,9 @@ def quick_search_results():
             elif research_source == 'internet_archive':
                 research_results = search_internet_archive(query, max_results=max_results)
                 research_info = get_research_details(research_results)
+                return jsonify(research_info)
+            elif research_source == 'arxiv':
+                research_info = search_arxiv_papers(query, max_results=max_results)
                 return jsonify(research_info)
 
         return jsonify([])

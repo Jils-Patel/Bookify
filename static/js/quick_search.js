@@ -547,7 +547,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .catch(error => {
                 loadingIndicator.remove();
                 // Check if this is the book tracking limit error
-                if (error.message && error.message.includes('limit of 5 tracked books')) {
+                if (error.message && error.message.includes('limit of 25 tracked books')) {
                     // Use the existing showErrorMessage function which already shows as a modal
                     showErrorMessage(error.message);
                 } else {

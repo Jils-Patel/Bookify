@@ -184,6 +184,13 @@
                                                     Internet Archive
                                                 </span>
                                             </label>
+                                            <label class="radio-option">
+                                                <input type="radio" name="researchSource" value="arxiv" checked>
+                                                <span class="radio-label">
+                                                    <i class="fas fa-book-open"></i>
+                                                    arXiv
+                                                </span>
+                                            </label>
                                         </div>
                                     </div>
                                     
@@ -215,7 +222,7 @@
                                                 <div class="progress-bar">
                                                     <div class="progress-fill" id="aiQueriesProgress" style="width: 0%"></div>
                                                 </div>
-                                                <div class="usage-limit">Limit: <span id="aiQueriesLimit">15</span></div>
+                                                <div class="usage-limit">Limit: <span id="aiQueriesLimit">50</span></div>
                                             </div>
                                         </div>
                                     </div>
@@ -230,7 +237,7 @@
                                                 <div class="progress-bar">
                                                     <div class="progress-fill" id="quickSearchesProgress" style="width: 0%"></div>
                                                 </div>
-                                                <div class="usage-limit">Limit: <span id="quickSearchesLimit">15</span></div>
+                                                <div class="usage-limit">Limit: <span id="quickSearchesLimit">50</span></div>
                                             </div>
                                         </div>
                                     </div>
@@ -615,8 +622,8 @@
                             } else {
                                 planName = 'Free Plan';
                                 planPrice = '$0/month';
-                                aiQueriesLimit = '15';
-                                quickSearchesLimit = '15';
+                                aiQueriesLimit = '50';
+                                quickSearchesLimit = '50';
                             }
                             
                             document.getElementById('currentPlan').textContent = planName;
@@ -629,8 +636,8 @@
                                 document.getElementById('aiQueriesProgress').style.width = '100%';
                                 document.getElementById('quickSearchesProgress').style.width = '100%';
                             } else {
-                                const aiQueriesPercentage = Math.min((aiQueriesToday / 15) * 100, 100);
-                                const quickSearchesPercentage = Math.min((quickSearchesToday / 15) * 100, 100);
+                                const aiQueriesPercentage = Math.min((aiQueriesToday / 50) * 100, 100);
+                                const quickSearchesPercentage = Math.min((quickSearchesToday / 50) * 100, 100);
                                 
                                 document.getElementById('aiQueriesProgress').style.width = `${aiQueriesPercentage}%`;
                                 document.getElementById('quickSearchesProgress').style.width = `${quickSearchesPercentage}%`;
