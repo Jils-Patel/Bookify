@@ -109,6 +109,38 @@ def extract_search_terms_with_gpt(user_input):
         # Remove extra whitespace and get final search terms
         search_terms = " ".join(processed_input.split())
         return search_terms
+    
+def extract_single_search_term_with_gpt(user_input):
+    try:
+        prompt = f"""
+        Extract only ONE key term from this request and return it, nothing else.
+        It should be related to the reccomendation request.
+        
+        Request: "{user_input}"
+        
+        """
+
+        response = openai.ChatCompletion.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that extracts a single key search term for a book and research recommendation system. Extract the the SINGLE most relevant search term and return it, nothing else."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=50,
+            temperature=0.3
+        )
+        
+        search_terms = response.choices[0].message['content'].strip()
+        print(f"Original input: '{user_input}'")
+        print(f"Extracted terms: '{search_terms}'")
+        return search_terms
+    except Exception as e:
+
+        processed_input = user_input.lower()
+    
+        # Remove extra whitespace and get final search terms
+        search_terms = " ".join(processed_input.split())
+        return search_terms
 
 def search_open_library(query, max_results=5):
 
@@ -638,6 +670,91 @@ def get_arxiv_details(papers):
     
     return paper_info
 
+def search_project_gutenberg(query, max_results=10):
+    """
+    Search for books in Project Gutenberg using the Gutendex API
+    """
+    search_terms = extract_single_search_term_with_gpt(query)
+    
+    if not search_terms:
+        search_terms = query
+    
+    try:
+        base_url = "https://gutendex.com/books/"
+        params = {
+            'search': search_terms
+        }
+        
+        response = requests.get(base_url, params=params)
+        print(f"Response: {response.url}")
+        if response.status_code != 200:
+            return []
+            
+        data = response.json()
+        books = []
+        
+        for item in data.get('results', [])[:max_results]:
+            # Get basic book info
+            title = item.get('title', 'Unknown Title')
+            book_id = item.get('id', 'Unknown ID')
+            authors = [author.get('name', 'Unknown Author') for author in item.get('authors', [])]
+            author = authors[0] if authors else 'Unknown Author'
+            
+            # Get year from author birth/death if available
+            year = 'Unknown'
+            if item.get('authors') and len(item['authors']) > 0:
+                author_info = item['authors'][0]
+                if author_info.get('birth_year') is not None:
+                    year = str(author_info.get('birth_year', '')) + '-' + str(author_info.get('death_year', ''))
+            
+            # Get description/summary
+            description = "No description available."
+            if item.get('summaries') and len(item['summaries']) > 0:
+                description = item['summaries'][0]
+            
+            # Get cover image
+            cover_url = None
+            if 'formats' in item and 'image/jpeg' in item['formats']:
+                cover_url = item['formats']['image/jpeg']
+            
+            # Get reading URL
+            reading_url = f"https://www.gutenberg.org/ebooks/{book_id}"
+            download_url = None
+            if 'formats' in item:
+                if 'text/html' in item['formats']:
+                    download_url = item['formats']['text/html']
+                elif 'text/html; charset=utf-8' in item['formats']:
+                    download_url = item['formats']['text/html; charset=utf-8']
+                elif 'application/epub+zip' in item['formats']:
+                    download_url = item['formats']['application/epub+zip']
+            
+            # Create buy link (Amazon search)
+            search_query = f"{title} {author}".replace(" ", "+")
+            buy_link = f"https://www.amazon.com/s?k={search_query}"
+            
+            # Get subjects
+            subjects = item.get('subjects', [])
+            
+            book = {
+                'title': title,
+                'author': author,
+                'authors': authors,
+                'year': year,
+                'description': description,
+                'cover_url': cover_url,
+                'reading_url': reading_url,
+                'buy_link': buy_link,
+                'subjects': subjects,
+                'has_ebook': reading_url is not None
+            }
+            
+            books.append(book)
+            
+        return books
+    except Exception as e:
+        print(f"Error searching Project Gutenberg: {e}")
+        return []
+
 @app.route('/Login')
 def login():
     return render_template('login.html')
@@ -881,6 +998,47 @@ def recommend():
                     'response_type': 'BOOKS'
                 })
                 
+            elif book_source == 'project_gutenberg':
+                books = search_project_gutenberg(user_input, max_results=max_results)
+                books_info = []
+                for book in books:
+                    books_info.append({
+                        'title': book['title'],
+                        'author': book['author'],
+                        'year': book['year'],
+                        'description': book['description'],
+                        'recommendation': book['description'],
+                        'cover_url': book['cover_url'],
+                        'reading_url': book['reading_url'],
+                        'buy_link': book['buy_link'],
+                        'has_ebook': book['has_ebook']
+                    })
+
+                # Prepare messages for AI response
+                ai_messages = [
+                    {"role": "system", "content": "You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses concise (1-2 sentences) and conversational."}
+                ]
+
+                # Add conversation history if available
+                if conversation_context:
+                    ai_messages.extend(conversation_context[-5:])
+
+                # Add current context and books
+                ai_messages.append({"role": "user", "content": f"User request: {user_input}\n Books: {books}\n You are a friendly and knowledgeable book recommendation assistant. Respond naturally to the user's request prompt. Keep responses to 1-2 sentences and conversational. Don't list the books out unless the user has a question about it. If there are no books passed to you, then mention that you could not find any books on Project Gutenberg."})
+
+                ai_response = openai.ChatCompletion.create(
+                    model="gpt-4o-mini",
+                    messages=ai_messages,
+                    max_tokens=150,
+                    temperature=0.7
+                ).choices[0].message['content']
+
+                return jsonify({
+                    'ai_response': ai_response,
+                    'books': books_info,
+                    'response_type': 'BOOKS'
+                })
+                
                 
 
         elif response_type == 'RESEARCH':
@@ -1036,7 +1194,7 @@ def recommend():
                 - Literary concepts and terminology
                 - Reading recommendations (but don't give specific titles unless asked)
                 - Book-related advice
-                Keep responses helpful and concise."""}
+                Keep responses helpful and concise. Mention to the user that you could not find any books or papers on the selected source"""}
             ]
             
             # Add conversation history if available
@@ -1283,6 +1441,9 @@ def quick_search_results():
                 return jsonify(books_info)
             elif book_source == 'google_books':
                 books_info = search_google_books(query, max_results=max_results)
+                return jsonify(books_info)
+            elif book_source == 'project_gutenberg':
+                books_info = search_project_gutenberg(query, max_results=max_results)
                 return jsonify(books_info)
 
         elif source == 'research':

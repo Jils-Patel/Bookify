@@ -884,12 +884,14 @@ textarea#userInput:focus {
 }
 
 .read-online-section,
-.buy-section {
+.buy-section,
+.download-section {
     width: 100%;
 }
 
 .read-online-btn,
-.buy-btn {
+.buy-btn,
+.download-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -923,13 +925,25 @@ textarea#userInput:focus {
     transform: translateY(-2px);
 }
 
+.download-btn {
+    background-color: #4299e1;
+    color: white;
+}
+
+.download-btn:hover {
+    background-color: #3182ce;
+    transform: translateY(-2px);
+}
+
 .read-online-btn:active,
-.buy-btn:active {
+.buy-btn:active,
+.download-btn:active {
     transform: translateY(0);
 }
 
 .read-online-btn i,
-.buy-btn i {
+.buy-btn i,
+.download-btn i {
     font-size: 1.1em;
 }
 
